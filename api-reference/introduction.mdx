@@ -1,33 +1,193 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Introduction"
+description: "Getting started with the CryptoGuard Security API"
+icon: "book-open"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+The CryptoGuard API provides programmatic access to our security intelligence and threat detection capabilities.
 
-## Welcome
+## Base URL
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+```
+https://api.cryptoguard.ai/v1
+```
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+All API requests must be made over HTTPS. HTTP requests will be rejected.
+
+---
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All endpoints require authentication via Bearer token:
+
+```bash
+Authorization: Bearer cg_live_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+See [Authentication](/api-reference/authentication) for details on obtaining API keys.
+
+---
+
+## Request Format
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token for authentication |
+| `Content-Type` | Yes* | `application/json` for POST/PUT requests |
+| `X-Request-ID` | No | Client-provided request ID for tracing |
+
+### Example Request
+
+```bash
+curl --request POST \
+  --url https://api.cryptoguard.ai/v1/scan/url \
+  --header 'Authorization: Bearer cg_live_xxxxxxxx' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "url": "https://suspicious-site.com",
+    "options": {
+      "includeContent": true
+    }
+  }'
+```
+
+---
+
+## Response Format
+
+All responses are JSON with the following structure:
+
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data: T;
+  meta: {
+    requestId: string;
+    timestamp: string;
+    processingTime: number;  // milliseconds
+  };
+}
+```
+
+### Successful Response
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
+{
+  "success": true,
+  "data": {
+    "riskScore": 85,
+    "threats": ["phishing", "new_domain"]
+  },
+  "meta": {
+    "requestId": "req_abc123def456",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 47
   }
-]
+}
 ```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "The provided API key is invalid or expired",
+    "details": {}
+  },
+  "meta": {
+    "requestId": "req_xyz789ghi012",
+    "timestamp": "2024-01-15T14:32:00.847Z"
+  }
+}
+```
+
+---
+
+## Rate Limits
+
+| Tier | Requests/min | Requests/day | Burst |
+|------|--------------|--------------|-------|
+| Free | 60 | 1,000 | 10 |
+| Pro | 300 | 50,000 | 50 |
+| Enterprise | 1,000 | Unlimited | 200 |
+
+Rate limit headers are included in every response:
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1705329720
+```
+
+<Warning>
+  Exceeding rate limits returns `429 Too Many Requests`. Implement exponential backoff.
+</Warning>
+
+---
+
+## Versioning
+
+The API is versioned via URL path (`/v1/`, `/v2/`). Breaking changes require a new version.
+
+| Version | Status | End of Life |
+|---------|--------|-------------|
+| v1 | Active | - |
+
+---
+
+## SDKs
+
+Official SDKs are available:
+
+<CardGroup cols={3}>
+  <Card title="JavaScript" icon="js" href="/sdk/javascript">
+    NPM: `@cryptoguard/sdk`
+  </Card>
+  <Card title="Python" icon="python" href="/sdk/python">
+    PyPI: `cryptoguard`
+  </Card>
+  <Card title="CLI" icon="terminal" href="/sdk/cli">
+    NPM: `cryptoguard-cli`
+  </Card>
+</CardGroup>
+
+---
+
+## Endpoints Overview
+
+### Scanning
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/scan/url` | Scan a URL for phishing |
+| POST | `/v1/scan/contract` | Analyze smart contract |
+| GET | `/v1/scan/wallet/{address}` | Assess wallet risk |
+| POST | `/v1/scan/transaction` | Analyze transaction |
+
+### Risk Analysis
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/risk/score/{entity}` | Get risk score |
+| GET | `/v1/risk/report/{entity}` | Get full risk report |
+
+### Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/webhooks` | Create webhook |
+| GET | `/v1/webhooks` | List webhooks |
+| DELETE | `/v1/webhooks/{id}` | Delete webhook |
+
+---
+
+## Support
+
+- **Documentation**: You're here!
+- **Status Page**: [status.cryptoguard.ai](https://status.cryptoguard.ai)
+- **Discord**: [discord.gg/chaingpt](https://discord.gg/chaingpt)
+- **Email**: api-support@chaingpt.org

@@ -1,0 +1,103 @@
+---
+title: "Roadmap"
+description: "Development milestones and future plans"
+icon: "road"
+---
+
+## Current Status: Public Beta v0.9.4 🚀
+
+CryptoGuard is live with core protection features, currently processing average 450 TPS across supported networks.
+
+<Steps>
+  <Step title="Q3 2023 - Foundation (Completed)" icon="check">
+    Launched browser extension v0.1.0-alpha.
+    
+    **Technical Achievements:**
+    - Implemented WASM-based local phishing detection engine
+    - Integrated GoPlus Security API v2 with <50ms latency
+    - Established CI/CD pipeline with strict security auditing
+  </Step>
+  <Step title="Q4 2023 - Core Features (Completed)" icon="check">
+    Added transaction simulation environment and specialized AI models.
+    
+    ```json
+    // v0.8.0 Release Config
+    {
+      "features": {
+        "simulation": {
+          "engine": "evm-trace-v2",
+          "forking": "archive-node-cluster",
+          "latencyTarget": "200ms"
+        },
+        "neuralNet": {
+          "model": "cg-transformer-xl",
+          "parameters": "1.2B",
+          "quantization": "int8"
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Technical Roadmap 2024
+
+### Q1 2024: Advanced Protection Protocol 🛡️
+
+Focus on proactive wallet security layer and cross-browser compatibility matrix.
+
+- [x] **Token Approval Manager**: ERC-20/721 allowance parser with recursive tracking
+- [ ] **Revocation Dashboard**: Batch transaction construction for `approve(0)` calls
+- [ ] **Firefox Port**: Migration to Manifest V3 for Gecko engine
+- [ ] **Mempool Monitor**: Pre-confirmation transaction scanning via WebSocket
+
+**Implementation Spec: Mempool Monitor**
+```typescript
+interface MempoolScanner {
+  subscribe(filter: BloomFilter): Subscription;
+  onTx(tx: PendingTransaction): Promise<RiskAssessment>;
+  latencyConf: {
+    maxPropagationDelay: 1500; // ms
+    nodeClusters: ['us-east', 'eu-central', 'ap-northeast'];
+  }
+}
+```
+
+### Q2 2024: Developer Infrastructure (DevInfra) 👨‍💻
+
+Opening the `cg-core` infrastructure via REST and gRPC interfaces.
+
+- **Public API Gateway**: Rate-limited access to `scan/*` and `risk/*` endpoints
+- **SDK Release**: Isomorphic JavaScript & async Python libraries
+- **Webhooks System**: Event-driven architecture using Apache Kafka consumer groups
+
+### Q3 2024: Mobile & L2 Scaling 📱
+
+Adapting security models for constrained environments and L2/L3 rollups.
+
+- **Mobile SDK**: React Native & Flutter modules with JSI bindings
+- **L2 Support**: Optimistic Rollup state verification (Arbitrum/Optimism)
+- **Hardware Integration**: HID bridging for Ledger/Trezor via WebUSB
+
+**Target Architecture for Mobile:**
+```yaml
+mobile_stack:
+  local_db: "SQLite (encrypted)"
+  networking: "gRPC-Web over QUIC"
+  security_module: "Secure Enclave / Keystore"
+  asset_updates: "Differential Bundles"
+```
+
+---
+
+## Feature Requests & RFCs
+
+We follow an "RFC first" development process. To propose major features:
+
+1. Fork the `cryptoguard-rfcs` repository
+2. Create `0000-my-feature.md`
+3. Submit PR for technical review
+
+[Join our Discord](https://discord.gg/chaingpt) to discuss specifications.

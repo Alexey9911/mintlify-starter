@@ -1,0 +1,160 @@
+---
+title: "Quick Start"
+description: "Get CryptoGuard up and running in under 2 minutes"
+icon: "rocket"
+---
+
+## Installation
+
+<Steps>
+  <Step title="Download Extension">
+    Visit the Chrome Web Store and click **Add to Chrome** (also compatible with Brave, Opera, and Edge).
+    
+    ```bash
+    # Direct link
+    https://chrome.google.com/webstore/detail/cryptoguard
+    ```
+  </Step>
+  
+  <Step title="Pin to Toolbar">
+    Click the puzzle icon in your browser toolbar and pin CryptoGuard for easy access.
+  </Step>
+  
+  <Step title="Start Browsing">
+    Navigate to any Web3 site. CryptoGuard automatically activates and begins scanning.
+  </Step>
+</Steps>
+
+---
+
+## First Scan
+
+Once installed, CryptoGuard initializes its WASM core and establishes a secure WebSocket connection.
+
+```typescript
+// [Internal Log] Core Initialization
+[INFO] Loading @cryptoguard/core-wasm v1.2.4... OK
+[INFO] Initializing ThreatEngine...
+       - PhishingModel: LOADED (14ms)
+       - ContractAnalyzer: READY (22ms)
+       - SimulationEnv: CONNECTED (ws://node-cluster-main:8080)
+[READY] System active. Event loop started.
+```
+
+When you visit a dApp, the analysis pipeline triggers:
+
+1. **DNS Resolution & Reputation**: Checks IP against global blocklists.
+2. **TLS Handshake Inspection**: Verifies certificate chain and issuer trust.
+3. **DOM Mutation Observer**: Scans for injected web3 provider hooks.
+4. **Heuristic Analysis**: Evaluates entropy of page content for obfuscation.
+
+You'll see the CryptoGuard icon change color based on threat level:
+
+| Icon Color | Threat Level | Action |
+|------------|--------------|--------|
+| 🟢 Green | Safe | Proceed normally |
+| 🟡 Yellow | Caution | Review warnings before proceeding |
+| 🔴 Red | Dangerous | Site blocked, do not proceed |
+
+---
+
+## Extension Popup
+
+Click the CryptoGuard icon to open the popup interface:
+
+### Analysis Module
+
+View real-time security analysis of the current page:
+
+```json
+{
+  "url": "https://app.uniswap.org",
+  "riskScore": 5,
+  "status": "verified",
+  "checks": {
+    "phishing": "passed",
+    "malware": "passed",
+    "ssl": "valid",
+    "domainAge": "2847 days"
+  }
+}
+```
+
+### My Transactions Module
+
+Monitor your recent transaction history with security annotations:
+
+```json
+{
+  "transactions": [
+    {
+      "hash": "0x7a8f...",
+      "type": "swap",
+      "riskScore": 12,
+      "status": "completed",
+      "timestamp": "2024-01-15T14:32:00Z"
+    }
+  ]
+}
+```
+
+### Tracker Module
+
+Set up alerts for wallet addresses and contracts you want to monitor:
+
+```typescript
+interface TrackerConfig {
+  address: string;
+  alertThreshold: number;  // Risk score threshold
+  notifyOn: ('transaction' | 'approval' | 'transfer')[];
+}
+```
+
+---
+
+## Configuration
+
+Access settings by clicking the gear icon in the popup:
+
+### Advanced Configuration (cg-config.json)
+
+For enterprise deployments or power users, you can import a JSON configuration:
+
+```json
+{
+  "policy": {
+    "autoBlock": true,
+    "riskThreshold": 75,
+    "allowedChains": [1, 56, 137, 42161],
+    "simulation": {
+      "timeout": 5000,
+      "traceLevel": "full"
+    }
+  },
+  "privacy": {
+    "telemetry": false,
+    "localProcessingOnly": false
+  },
+  "integrations": {
+    "customRpc": "https://eth-mainnet.alchemyapi.io/v2/...",
+    "webhookSink": "https://internal-security.corp/events"
+  }
+}
+```
+
+<Note>
+  CryptoGuard never stores private keys or seed phrases. All analysis is performed on public blockchain data only.
+</Note>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation Details" icon="download" href="/getting-started/installation">
+    Browser-specific installation guides
+  </Card>
+  <Card title="Anti-Phishing" icon="shield" href="/features/anti-phishing">
+    Learn how URL scanning works
+  </Card>
+</CardGroup>

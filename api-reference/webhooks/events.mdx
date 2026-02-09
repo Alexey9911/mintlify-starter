@@ -1,0 +1,298 @@
+---
+title: "Webhook Events"
+description: "Real-time security event notifications via webhooks"
+icon: "bell"
+---
+
+Configure webhooks to receive real-time notifications when security events occur for monitored entities.
+
+## Supported Events
+
+| Event Type | Description |
+|------------|-------------|
+| `entity.risk_changed` | Risk score changed significantly |
+| `entity.threat_detected` | New threat detected |
+| `address.interaction` | Monitored address interacted with risky entity |
+| `approval.new` | New token approval detected |
+| `approval.revoked` | Token approval revoked |
+
+---
+
+## Webhook Payload Format
+
+All webhook payloads follow this structure:
+
+```typescript
+interface WebhookPayload {
+  id: string;                    // Unique event ID
+  type: string;                  // Event type
+  timestamp: string;             // ISO 8601 timestamp
+  data: object;                  // Event-specific data
+  signature: string;             // HMAC-SHA256 signature
+}
+```
+
+### Example Payload
+
+```json
+{
+  "id": "evt_1a2b3c4d5e6f7g8h",
+  "type": "entity.risk_changed",
+  "timestamp": "2024-01-15T14:32:00.847Z",
+  "data": {
+    "entity": "0x742d35Cc6634C0532925a3b844Bc454c459dFE2C",
+    "entityType": "contract",
+    "previousScore": 25,
+    "currentScore": 78,
+    "change": 53,
+    "factors": [
+      "Honeypot behavior detected",
+      "Liquidity removed"
+    ]
+  },
+  "signature": "sha256=a1b2c3d4e5f6..."
+}
+```
+
+---
+
+## Create Webhook
+
+```
+POST /v1/webhooks
+```
+
+### Request Body
+
+<ParamField body="url" type="string" required>
+  HTTPS URL to receive webhook events
+</ParamField>
+
+<ParamField body="events" type="array" required>
+  Event types to subscribe to
+</ParamField>
+
+<ParamField body="entities" type="array">
+  Specific entities to monitor (optional, monitors all if empty)
+</ParamField>
+
+<ParamField body="secret" type="string">
+  Signing secret for payload verification (auto-generated if not provided)
+</ParamField>
+
+### Example Request
+
+```bash
+curl --request POST \
+  --url https://api.cryptoguard.ai/v1/webhooks \
+  --header 'Authorization: Bearer cg_live_xxxxxxxx' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "url": "https://your-app.com/webhooks/cryptoguard",
+    "events": ["entity.risk_changed", "entity.threat_detected"],
+    "entities": ["0x742d35Cc6634C0532925a3b844Bc454c459dFE2C"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "wh_abc123def456",
+    "url": "https://your-app.com/webhooks/cryptoguard",
+    "events": ["entity.risk_changed", "entity.threat_detected"],
+    "entities": ["0x742d35..."],
+    "secret": "whsec_xxxxxxxxxxxxxxxxxxxxxxxx",
+    "status": "active",
+    "createdAt": "2024-01-15T14:32:00Z"
+  }
+}
+```
+
+<Warning>
+  Store the `secret` securely. It's only shown once upon creation.
+</Warning>
+
+---
+
+## List Webhooks
+
+```
+GET /v1/webhooks
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "webhooks": [
+      {
+        "id": "wh_abc123def456",
+        "url": "https://your-app.com/webhooks/cryptoguard",
+        "events": ["entity.risk_changed"],
+        "status": "active",
+        "lastTriggered": "2024-01-15T10:00:00Z",
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Delete Webhook
+
+```
+DELETE /v1/webhooks/{webhookId}
+```
+
+---
+
+## Verify Webhook Signature
+
+Always verify webhook signatures to ensure authenticity:
+
+```typescript
+import crypto from 'crypto';
+
+function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  const expectedSignature = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Express.js example
+app.post('/webhooks/cryptoguard', (req, res) => {
+  const signature = req.headers['x-cryptoguard-signature'];
+  const payload = JSON.stringify(req.body);
+  
+  if (!verifyWebhookSignature(payload, signature, webhookSecret)) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Process the event
+  const event = req.body;
+  console.log('Received event:', event.type);
+  
+  res.status(200).send('OK');
+});
+```
+
+```python Python
+import hmac
+import hashlib
+
+def verify_signature(payload: str, signature: str, secret: str) -> bool:
+    expected = 'sha256=' + hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+# Flask example
+@app.route('/webhooks/cryptoguard', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Cryptoguard-Signature')
+    payload = request.get_data(as_text=True)
+    
+    if not verify_signature(payload, signature, WEBHOOK_SECRET):
+        return 'Invalid signature', 401
+    
+    event = request.json
+    print(f"Received event: {event['type']}")
+    
+    return 'OK', 200
+```
+
+---
+
+## Retry Policy
+
+Failed webhook deliveries are retried with exponential backoff:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | Immediate |
+| 2 | 1 minute |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 2 hours |
+
+After 5 failed attempts, the webhook is marked as `failing` and requires manual re-activation.
+
+---
+
+## Event Details
+
+### entity.risk_changed
+
+Triggered when an entity's risk score changes by 15+ points.
+
+```json
+{
+  "type": "entity.risk_changed",
+  "data": {
+    "entity": "0x...",
+    "entityType": "contract",
+    "previousScore": 25,
+    "currentScore": 78,
+    "change": 53,
+    "factors": ["Honeypot detected", "Liquidity removed"]
+  }
+}
+```
+
+### entity.threat_detected
+
+Triggered when a new threat is identified.
+
+```json
+{
+  "type": "entity.threat_detected",
+  "data": {
+    "entity": "0x...",
+    "threatType": "honeypot",
+    "severity": "critical",
+    "description": "Contract now prevents selling"
+  }
+}
+```
+
+### approval.new
+
+Triggered when a monitored wallet makes a new token approval.
+
+```json
+{
+  "type": "approval.new",
+  "data": {
+    "wallet": "0x...",
+    "token": "0x...",
+    "tokenSymbol": "USDC",
+    "spender": "0x...",
+    "spenderLabel": "Unknown",
+    "amount": "unlimited",
+    "riskLevel": "high"
+  }
+}
+```
+
+<Note>
+  Webhooks are available on Pro and Enterprise plans only.
+</Note>

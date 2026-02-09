@@ -1,0 +1,229 @@
+---
+title: "Architecture Overview"
+description: "System architecture and component breakdown of CryptoGuard"
+icon: "sitemap"
+---
+
+CryptoGuard is a distributed security system combining browser extension, cloud infrastructure, and AI/ML pipelines.
+
+## System Components
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Browser Extension                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │ Content  │  │Background│  │  Popup   │  │ Injected │        │
+│  │ Scripts  │  │ Service  │  │   UI     │  │ Provider │        │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
+│       │             │              │             │               │
+│       └─────────────┴──────────────┴─────────────┘               │
+│                            │                                     │
+└────────────────────────────┼─────────────────────────────────────┘
+                             │ HTTPS/WSS
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      API Gateway                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │   Auth   │  │  Rate    │  │  Cache   │  │ Routing  │        │
+│  │  Layer   │  │ Limiter  │  │  Layer   │  │  Layer   │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+          ┌──────────────────┼──────────────────┐
+          ▼                  ▼                  ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│   Scan Service   │ │  Risk Service    │ │Simulation Service│
+│  ┌────────────┐  │ │  ┌────────────┐  │ │  ┌────────────┐  │
+│  │    URL     │  │ │  │  Scoring   │  │ │  │Transaction │  │
+│  │  Scanner   │  │ │  │   Engine   │  │ │  │ Simulator  │  │
+│  └────────────┘  │ │  └────────────┘  │ │  └────────────┘  │
+│  ┌────────────┐  │ │  ┌────────────┐  │ │  ┌────────────┐  │
+│  │  Contract  │  │ │  │  History   │  │ │  │   State    │  │
+│  │  Analyzer  │  │ │  │  Tracker   │  │ │  │   Fork     │  │
+│  └────────────┘  │ │  └────────────┘  │ │  └────────────┘  │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+          │                  │                  │
+          └──────────────────┼──────────────────┘
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Data Layer                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │PostgreSQL│  │  Redis   │  │   S3     │  │ClickHouse│        │
+│  │ (Core)   │  │ (Cache)  │  │ (Blobs)  │  │(Analytics)│        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Extension Architecture
+
+### Components
+
+| Component | Purpose | Technology |
+|-----------|---------|------------|
+| Content Scripts | DOM inspection, page analysis | JavaScript |
+| Background Service | API communication, state management | Service Worker |
+| Popup UI | User interface | React + Tailwind |
+| Injected Provider | Wallet interaction interception | JavaScript |
+
+### Data Flow
+
+```typescript
+// 1. Content script detects page load
+contentScript.onPageLoad((url) => {
+  // 2. Send URL to background service
+  chrome.runtime.sendMessage({ type: 'SCAN_URL', url });
+});
+
+// 3. Background service queries API
+backgroundService.onMessage(async (msg) => {
+  const result = await api.scan({ url: msg.url });
+  
+  // 4. Update extension state
+  state.setCurrentPageRisk(result.riskScore);
+  
+  // 5. Notify content script
+  chrome.tabs.sendMessage(tabId, { type: 'SCAN_RESULT', result });
+});
+
+// 6. Content script shows visual indicator
+contentScript.onScanResult((result) => {
+  showRiskIndicator(result.riskScore);
+});
+```
+
+---
+
+## Backend Services
+
+### Scan Service
+
+Handles all security scanning operations:
+
+```typescript
+interface ScanService {
+  // URL scanning
+  scanUrl(url: string): Promise<UrlScanResult>;
+  
+  // Contract analysis
+  analyzeContract(address: string, chain: Chain): Promise<ContractAnalysis>;
+  
+  // Wallet assessment
+  assessWallet(address: string, chain: Chain): Promise<WalletAssessment>;
+  
+  // Transaction analysis
+  analyzeTransaction(tx: RawTransaction): Promise<TransactionAnalysis>;
+}
+```
+
+**Scaling**: 
+- 50 instances across 4 regions
+- Auto-scales based on request queue depth
+- Target latency: <100ms p95
+
+### Risk Service
+
+Aggregates data sources and calculates risk scores:
+
+```typescript
+interface RiskService {
+  // Score calculation
+  calculateScore(entity: Entity): Promise<RiskScore>;
+  
+  // Historical tracking
+  getScoreHistory(entity: Entity, period: string): Promise<ScoreHistory>;
+  
+  // Alert management
+  checkAlerts(entity: Entity, score: RiskScore): Promise<Alert[]>;
+}
+```
+
+### Simulation Service
+
+Transaction simulation on forked chain state:
+
+```typescript
+interface SimulationService {
+  // Full simulation
+  simulate(tx: RawTransaction): Promise<SimulationResult>;
+  
+  // Quick estimate
+  estimateGas(tx: RawTransaction): Promise<GasEstimate>;
+  
+  // State diff
+  getStateDiff(tx: RawTransaction): Promise<StateDiff>;
+}
+```
+
+---
+
+## Infrastructure
+
+### Global Deployment
+
+| Region | Services | Latency (p50) |
+|--------|----------|---------------|
+| US East (Virginia) | Full stack | 23ms |
+| US West (Oregon) | Full stack | 28ms |
+| EU (Frankfurt) | Full stack | 31ms |
+| Asia (Singapore) | Full stack | 45ms |
+
+### Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| CDN | Cloudflare |
+| API Gateway | Kong |
+| Services | Node.js + Rust |
+| Queue | Apache Kafka |
+| Cache | Redis Cluster |
+| Database | PostgreSQL + TimescaleDB |
+| Analytics | ClickHouse |
+| ML Inference | NVIDIA Triton |
+
+---
+
+## Security Model
+
+### Data Handling
+
+```typescript
+enum DataClassification {
+  PUBLIC,      // Blockchain data, public APIs
+  INTERNAL,    // Aggregated analytics
+  SENSITIVE,   // User preferences (encrypted)
+  RESTRICTED   // API keys (encrypted + HSM)
+}
+```
+
+**Principles:**
+- No private keys ever transmitted or stored
+- No seed phrases ever transmitted or stored
+- User preferences encrypted at rest (AES-256-GCM)
+- API keys stored in hardware security modules
+
+### Authentication
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Extension  │────▶│   OAuth2    │────▶│   API       │
+│             │     │   /PKCE     │     │  Services   │
+└─────────────┘     └─────────────┘     └─────────────┘
+      │                                        │
+      │                JWT                     │
+      └────────────────────────────────────────┘
+```
+
+### Rate Limiting
+
+| Tier | Requests/min | Burst | Daily Limit |
+|------|--------------|-------|-------------|
+| Anonymous | 10 | 20 | 100 |
+| Free | 60 | 100 | 1,000 |
+| Pro | 300 | 500 | 50,000 |
+| Enterprise | 1,000 | 2,000 | Unlimited |
+
+<Note>
+  Rate limits are applied per API key. Extension users share a pooled anonymous quota.
+</Note>

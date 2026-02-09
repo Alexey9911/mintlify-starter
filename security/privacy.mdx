@@ -1,0 +1,236 @@
+---
+title: "Privacy Policy"
+description: "How CryptoGuard handles your data and protects your privacy"
+icon: "lock"
+---
+
+At ChainGPT, we prioritize the privacy and security of our users. CryptoGuard is designed with privacy-first principles.
+
+## Core Principles
+
+<CardGroup cols={2}>
+  <Card title="No Private Keys" icon="key">
+    We never access, transmit, or store your private keys
+  </Card>
+  <Card title="No Seed Phrases" icon="seedling">
+    Your recovery phrases never leave your device
+  </Card>
+  <Card title="Public Data Only" icon="globe">
+    We only process publicly available blockchain data
+  </Card>
+  <Card title="Local-First" icon="laptop">
+    Preferences and settings stored locally
+  </Card>
+</CardGroup>
+
+---
+
+## Data We Collect
+
+### Extension Analytics (Optional)
+
+```typescript
+interface AnonymousAnalytics {
+  // Aggregated usage metrics (no PII)
+  sessionCount: number;
+  featuresUsed: string[];
+  errorsEncountered: string[];
+  
+  // Performance metrics
+  avgScanTime: number;
+  extensionVersion: string;
+  browserType: string;
+  
+  // NOT collected
+  walletAddresses: never;
+  transactionHistory: never;
+  browsingHistory: never;
+  personalInfo: never;
+}
+```
+
+<Note>
+  Analytics are opt-in and completely anonymous. No personal information is ever collected.
+</Note>
+
+### URL Scanning Data
+
+When scanning URLs, we process:
+
+| Data | Purpose | Retained |
+|------|---------|----------|
+| URL | Threat analysis | 24 hours (hashed) |
+| Scan Result | Improve detection | Aggregated only |
+| Timestamp | Rate limiting | 24 hours |
+
+**NOT Processed:**
+- Page content (analyzed locally only)
+- Form inputs
+- Cookies or session data
+- Login credentials
+
+### Transaction Analysis Data
+
+```typescript
+interface TransactionScanData {
+  // Processed for security analysis
+  contractAddress: string;      // Public blockchain data
+  functionSelector: string;     // Public transaction data
+  chainId: number;
+  
+  // NOT processed
+  privateKey: never;
+  signedTransaction: never;
+  personalIdentifiers: never;
+}
+```
+
+---
+
+## Data Storage
+
+### Local Storage (Your Device)
+
+```typescript
+interface LocalData {
+  // User preferences
+  settings: UserSettings;
+  whitelist: string[];
+  
+  // Cached analysis results
+  recentScans: CachedScan[];
+  
+  // Session data
+  sessionToken: string;  // Encrypted
+}
+```
+
+### Server Storage
+
+| Data Type | Location | Encryption | Retention |
+|-----------|----------|------------|-----------|
+| API Keys | HSM (Hardware Security Module) | AES-256-GCM | Until revoked |
+| Anonymous Analytics | AWS (US-East) | AES-256 | 90 days |
+| Threat Signatures | Global CDN | N/A (public) | Indefinite |
+
+---
+
+## Data NOT Collected
+
+CryptoGuard explicitly does NOT collect or transmit:
+
+- ❌ Private keys or seed phrases
+- ❌ Wallet balances or holdings
+- ❌ Transaction history
+- ❌ Browsing history beyond current scan
+- ❌ Personal identification information
+- ❌ IP addresses (hashed for rate limiting only)
+- ❌ Cookies from websites you visit
+- ❌ Form data or passwords
+- ❌ Email addresses (unless you contact support)
+
+---
+
+## Third-Party Data Sharing
+
+### Security Partners
+
+We share anonymized, aggregated threat data with:
+
+| Partner | Data Shared | Purpose |
+|---------|-------------|---------|
+| CUBE3.AI | Transaction patterns | Fraud detection |
+| GoPlus | Contract addresses | Security analysis |
+| Shieldeum | Threat signatures | Community protection |
+
+**No personal data is ever shared with third parties.**
+
+### Law Enforcement
+
+We may disclose information if required by law:
+
+- Valid court orders
+- Subpoenas
+- Legal process
+
+In such cases, we can only provide:
+- Aggregated, anonymized statistics
+- No personal user data (we don't have it)
+
+---
+
+## Your Rights
+
+### GDPR Compliance
+
+EU users have the right to:
+
+| Right | Implementation |
+|-------|----------------|
+| Access | Export your local data via extension settings |
+| Erasure | Uninstall extension removes all local data |
+| Portability | Export settings in JSON format |
+| Objection | Opt-out of analytics at any time |
+
+### CCPA Compliance
+
+California users have the right to:
+
+- Know what data is collected (see above)
+- Delete personal information (N/A - we don't collect PII)
+- Opt-out of sale (we never sell data)
+
+---
+
+## Security Measures
+
+### Encryption
+
+```typescript
+interface SecurityMeasures {
+  dataAtRest: 'AES-256-GCM';
+  dataInTransit: 'TLS 1.3';
+  apiKeys: 'HSM-backed';
+  localStorage: 'Browser-encrypted';
+}
+```
+
+### Access Controls
+
+| System | Access Level |
+|--------|--------------|
+| Threat Database | Read-only for extension |
+| User Settings | Device-local only |
+| Analytics | Anonymized, aggregate only |
+| API Keys | HSM with audit logging |
+
+---
+
+## Children's Privacy
+
+CryptoGuard is not intended for users under 18. We do not knowingly collect data from minors.
+
+---
+
+## Changes to Privacy Policy
+
+We will notify users of material changes via:
+
+1. Extension update notifications
+2. In-app banner
+3. Email (if provided for support)
+
+Last updated: January 2024
+
+---
+
+## Contact
+
+For privacy inquiries:
+
+- **Email**: privacy@chaingpt.org
+- **Address**: Level 25, Al Sila Tower, ADGM Square, Al Maryah Island, Abu Dhabi, UAE
+
+<Warning>
+  If you believe your data has been compromised, contact us immediately at security@chaingpt.org.
+</Warning>

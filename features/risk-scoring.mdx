@@ -1,0 +1,261 @@
+---
+title: "Risk Scoring"
+description: "AI-driven risk assessment for contracts, wallets, and transactions"
+icon: "chart-line"
+---
+
+Every entity in the CryptoGuard ecosystem receives a risk score from 0 to 100. This score aggregates multiple data points into a single, actionable metric.
+
+## Score Ranges
+
+| Score | Level | Color | Recommendation |
+|-------|-------|-------|----------------|
+| 0-20 | Safe | 🟢 Green | Proceed normally |
+| 21-40 | Low Risk | 🟢 Green | Minor caution advised |
+| 41-60 | Medium Risk | 🟡 Yellow | Review before proceeding |
+| 61-80 | High Risk | 🟠 Orange | Strong caution, verify manually |
+| 81-100 | Critical | 🔴 Red | Do not interact |
+
+---
+
+## Score Components
+
+### Contract Risk Score
+
+```typescript
+interface ContractRiskScore {
+  overall: number;
+  breakdown: {
+    codeAnalysis: number;      // Weight: 35%
+    ownershipRisk: number;     // Weight: 20%
+    liquidityHealth: number;   // Weight: 15%
+    historicalActivity: number; // Weight: 15%
+    communitySignals: number;  // Weight: 10%
+    auditStatus: number;       // Weight: 5%
+  };
+  confidence: number;          // 0-1 confidence in score accuracy
+}
+```
+
+<AccordionGroup>
+  <Accordion title="Code Analysis (35%)">
+    Static and dynamic analysis of contract bytecode.
+    
+    | Factor | Impact |
+    |--------|--------|
+    | Verified source code | -10 points |
+    | Honeypot patterns | +40 points |
+    | Hidden mint functions | +30 points |
+    | Blacklist capability | +20 points |
+    | High sell tax (>15%) | +25 points |
+    | Proxy contract | +10 points |
+  </Accordion>
+  
+  <Accordion title="Ownership Risk (20%)">
+    Analysis of contract ownership and control.
+    
+    | Factor | Impact |
+    |--------|--------|
+    | Renounced ownership | -15 points |
+    | Multi-sig owner | -10 points |
+    | Single EOA owner | +15 points |
+    | Owner holds >10% supply | +20 points |
+    | Recent ownership change | +10 points |
+  </Accordion>
+  
+  <Accordion title="Liquidity Health (15%)">
+    DEX liquidity and trading patterns.
+    
+    | Factor | Impact |
+    |--------|--------|
+    | Locked liquidity >1 year | -15 points |
+    | No locked liquidity | +30 points |
+    | Low liquidity (<$10k) | +20 points |
+    | Single LP provider | +15 points |
+    | Recent large withdrawals | +25 points |
+  </Accordion>
+  
+  <Accordion title="Historical Activity (15%)">
+    On-chain transaction history analysis.
+    
+    | Factor | Impact |
+    |--------|--------|
+    | Age > 6 months | -10 points |
+    | Age < 24 hours | +25 points |
+    | Consistent trading volume | -5 points |
+    | Pump and dump pattern | +35 points |
+    | Associated with known rugs | +40 points |
+  </Accordion>
+  
+  <Accordion title="Community Signals (10%)">
+    Social and community indicators.
+    
+    | Factor | Impact |
+    |--------|--------|
+    | Verified social links | -5 points |
+    | Fake followers detected | +15 points |
+    | Negative sentiment spike | +10 points |
+    | Team doxxed | -10 points |
+    | Anonymous team | +10 points |
+  </Accordion>
+  
+  <Accordion title="Audit Status (5%)">
+    Security audit verification.
+    
+    | Factor | Impact |
+    |--------|--------|
+    | Audited by Tier 1 firm | -10 points |
+    | Audited by unknown firm | -3 points |
+    | No audit | +5 points |
+    | Audit has critical findings | +15 points |
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Wallet Risk Score
+
+```typescript
+interface WalletRiskScore {
+  overall: number;
+  breakdown: {
+    transactionPatterns: number;  // Weight: 30%
+    associations: number;         // Weight: 25%
+    fundingSource: number;        // Weight: 20%
+    age: number;                  // Weight: 15%
+    labels: number;               // Weight: 10%
+  };
+  knownLabels: string[];
+  flaggedAssociations: string[];
+}
+```
+
+| Factor | Risk Indicator |
+|--------|----------------|
+| Created < 7 days ago | +20 points |
+| Funded from mixer | +40 points |
+| Interacted with flagged contracts | +30 points |
+| Known exploit address | +100 points |
+| Multiple rapid transactions | +15 points |
+| Large dormant balance reactivated | +10 points |
+
+---
+
+### Transaction Risk Score
+
+```typescript
+interface TransactionRiskScore {
+  overall: number;
+  breakdown: {
+    contractRisk: number;        // Score of target contract
+    methodRisk: number;          // Risk of function being called
+    valueRisk: number;           // Unusual value amounts
+    approvalRisk: number;        // Token approval analysis
+    gasRisk: number;             // Unusual gas patterns
+  };
+  warnings: TransactionWarning[];
+  simulation: SimulationResult;
+}
+
+interface TransactionWarning {
+  code: string;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  details: string;
+}
+```
+
+---
+
+## API Usage
+
+### Get Contract Risk Score
+
+```typescript
+const score = await cryptoguard.risk.getScore({
+  chain: 'ethereum',
+  address: '0x...',
+  type: 'contract'
+});
+
+console.log(score);
+// {
+//   "overall": 34,
+//   "breakdown": {
+//     "codeAnalysis": 15,
+//     "ownershipRisk": 45,
+//     "liquidityHealth": 20,
+//     "historicalActivity": 30,
+//     "communitySignals": 50,
+//     "auditStatus": 10
+//   },
+//   "confidence": 0.87
+// }
+```
+
+### Get Wallet Risk Score
+
+```typescript
+const score = await cryptoguard.risk.getScore({
+  chain: 'ethereum',
+  address: '0x...',
+  type: 'wallet'
+});
+```
+
+### Pre-Transaction Risk Analysis
+
+```typescript
+const analysis = await cryptoguard.risk.analyzeTransaction({
+  from: '0x...',
+  to: '0x...',
+  data: '0x...',
+  value: '1000000000000000000'
+});
+
+if (analysis.overall > 70) {
+  console.warn('High risk transaction!', analysis.warnings);
+}
+```
+
+---
+
+## Risk Score History
+
+CryptoGuard tracks risk score changes over time:
+
+```typescript
+const history = await cryptoguard.risk.getHistory({
+  chain: 'ethereum',
+  address: '0x...',
+  period: '30d'
+});
+
+// Returns array of score snapshots
+// [{
+//   "timestamp": "2024-01-01T00:00:00Z",
+//   "overall": 25
+// }, ...]
+```
+
+<Note>
+  Sudden risk score increases (>20 points in 24 hours) trigger automatic alerts for tracked addresses.
+</Note>
+
+---
+
+## Confidence Score
+
+Each risk score includes a confidence value (0-1) indicating accuracy:
+
+| Confidence | Meaning | Data Available |
+|------------|---------|----------------|
+| 0.9-1.0 | Very High | Full data, verified source, sufficient history |
+| 0.7-0.9 | High | Most data available, some unverified |
+| 0.5-0.7 | Medium | Partial data, new contract |
+| 0.3-0.5 | Low | Limited data, analyze manually |
+| 0-0.3 | Very Low | Insufficient data for reliable score |
+
+<Warning>
+  Risk scores with confidence < 0.5 should be treated as estimates. Always verify critical transactions manually.
+</Warning>

@@ -1,0 +1,282 @@
+---
+title: "Wallet Security"
+description: "Comprehensive wallet protection with address verification and activity monitoring"
+icon: "wallet"
+---
+
+CryptoGuard provides multi-layer wallet security including address verification, suspicious activity monitoring, and drain protection.
+
+## Address Verification
+
+Before sending funds, CryptoGuard verifies recipient addresses:
+
+```typescript
+interface AddressVerification {
+  address: string;
+  chain: string;
+  verified: boolean;
+  labels: string[];
+  riskScore: number;
+  checks: {
+    isContract: boolean;
+    hasCode: boolean;
+    isEOA: boolean;
+    isPoisoned: boolean;      // Address poisoning attack
+    isSimilar: string | null; // Similar to known address
+    fundingSource: string[];
+    associations: AddressAssociation[];
+  };
+}
+```
+
+### Address Poisoning Protection
+
+CryptoGuard detects address poisoning attacks where scammers create addresses similar to your recent contacts:
+
+```typescript
+// Example: Address poisoning detection
+const verification = await guard.wallet.verifyAddress({
+  address: '0x742d35Cc6634C0532925a3b844Bc9e7595f8b0bb',
+  chain: 'ethereum'
+});
+
+if (verification.checks.isPoisoned) {
+  console.warn('⚠️ This address may be a poisoning attempt!');
+  console.warn('Similar to:', verification.checks.isSimilar);
+  // "0x742d35Cc6634C0532925a3b844Bc454a559dFE2C"
+  // Note: First and last chars match, middle differs
+}
+```
+
+<Warning>
+  Address poisoning is a common attack. Always verify the FULL address, not just the first/last characters.
+</Warning>
+
+---
+
+## Activity Monitoring
+
+### Transaction Monitoring
+
+Track wallet activity in real-time:
+
+```typescript
+interface WalletMonitor {
+  address: string;
+  chain: string;
+  monitoring: {
+    incomingTransactions: boolean;
+    outgoingTransactions: boolean;
+    tokenApprovals: boolean;
+    nftTransfers: boolean;
+    contractInteractions: boolean;
+  };
+  alerts: AlertConfig;
+}
+
+interface AlertConfig {
+  largeTransfer: {
+    enabled: boolean;
+    threshold: number;    // In USD
+  };
+  newApproval: {
+    enabled: boolean;
+    notifyUnlimited: boolean;
+  };
+  suspiciousActivity: {
+    enabled: boolean;
+    riskThreshold: number;
+  };
+}
+```
+
+### Setting Up Monitoring
+
+```typescript
+const monitor = await guard.wallet.monitor({
+  address: '0x...',
+  chain: 'ethereum',
+  alerts: {
+    largeTransfer: { enabled: true, threshold: 1000 },
+    newApproval: { enabled: true, notifyUnlimited: true },
+    suspiciousActivity: { enabled: true, riskThreshold: 60 }
+  }
+});
+
+// Listen for alerts
+monitor.on('alert', (alert) => {
+  console.log('Security alert:', alert.type, alert.message);
+});
+```
+
+---
+
+## Drain Protection
+
+CryptoGuard implements multiple layers of drain protection:
+
+<CardGroup cols={2}>
+  <Card title="Approval Revocation" icon="ban">
+    Quick-revoke interface for suspicious token approvals
+  </Card>
+  <Card title="Spending Limits" icon="gauge">
+    Set daily spending limits with alerts
+  </Card>
+  <Card title="Whitelist Mode" icon="list-check">
+    Only allow transactions to pre-approved addresses
+  </Card>
+  <Card title="Time Delays" icon="clock">
+    Optional delay for large transactions
+  </Card>
+</CardGroup>
+
+### Approval Management
+
+View and revoke all token approvals:
+
+```typescript
+// Get all active approvals
+const approvals = await guard.wallet.getApprovals({
+  address: '0x...',
+  chain: 'ethereum'
+});
+
+// Response
+// [
+//   {
+//     "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+//     "symbol": "USDC",
+//     "spender": "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+//     "spenderLabel": "Uniswap V3 Router",
+//     "allowance": "unlimited",
+//     "riskLevel": "medium",
+//     "lastUsed": "2024-01-10T15:30:00Z"
+//   },
+//   ...
+// ]
+
+// Revoke suspicious approval
+const revokeTx = await guard.wallet.revokeApproval({
+  token: '0x...',
+  spender: '0x...',
+  chain: 'ethereum'
+});
+```
+
+### Suspicious Approval Detection
+
+| Indicator | Risk Level | Action |
+|-----------|------------|--------|
+| Unlimited approval to unknown contract | 🔴 Critical | Immediate revocation recommended |
+| Approval to unverified contract | 🟠 High | Review and consider revoking |
+| Old unused approval | 🟡 Medium | Consider revoking |
+| Approval to EOA (non-contract) | 🔴 Critical | Immediate revocation |
+| Recently deployed spender | 🟠 High | Monitor closely |
+
+---
+
+## Wallet Risk Profile
+
+Get a comprehensive risk assessment of any wallet:
+
+```typescript
+const profile = await guard.wallet.getProfile({
+  address: '0x...',
+  chain: 'ethereum'
+});
+
+// Response
+interface WalletProfile {
+  address: string;
+  riskScore: number;
+  age: number;                  // Days since first transaction
+  transactionCount: number;
+  
+  holdings: {
+    totalValue: number;         // USD
+    tokens: TokenHolding[];
+    nfts: NFTHolding[];
+  };
+  
+  activity: {
+    last24h: number;            // Transaction count
+    last7d: number;
+    last30d: number;
+    avgTransactionSize: number; // USD
+  };
+  
+  associations: {
+    knownEntities: string[];    // CEX, DEX, DeFi protocols
+    flaggedAddresses: string[]; // Interacted with risky addresses
+    fundingSources: string[];
+  };
+  
+  security: {
+    activeApprovals: number;
+    unlimitedApprovals: number;
+    riskyApprovals: number;
+  };
+}
+```
+
+---
+
+## Wallet Scoring Factors
+
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| Age | 15% | Older wallets are generally safer |
+| Transaction History | 20% | Consistent, legitimate activity |
+| Funding Source | 25% | Origin of funds (CEX, mixer, etc.) |
+| Associations | 25% | Connected addresses and contracts |
+| Labels | 15% | Known labels (whale, hacker, etc.) |
+
+### Known Wallet Labels
+
+```typescript
+type WalletLabel = 
+  | 'exchange'           // Centralized exchange
+  | 'defi_protocol'      // DeFi smart contract
+  | 'nft_marketplace'    // NFT platform
+  | 'whale'              // Large holder
+  | 'smart_money'        // Successful trader
+  | 'mev_bot'            // MEV searcher
+  | 'hacker'             // Known exploit address
+  | 'scammer'            // Known scam address
+  | 'mixer'              // Privacy service
+  | 'bridge'             // Cross-chain bridge
+  | 'multisig'           // Multi-signature wallet
+  | 'dao_treasury';      // DAO treasury
+```
+
+---
+
+## API Endpoints
+
+### Verify Address
+
+```bash
+GET /v1/wallet/verify/{address}?chain=ethereum
+```
+
+### Get Approvals
+
+```bash
+GET /v1/wallet/approvals/{address}?chain=ethereum
+```
+
+### Get Profile
+
+```bash
+GET /v1/wallet/profile/{address}?chain=ethereum
+```
+
+### Monitor Wallet
+
+```bash
+POST /v1/wallet/monitor
+```
+
+<Note>
+  Wallet monitoring is available on Pro and Enterprise plans. Free tier includes basic address verification.
+</Note>

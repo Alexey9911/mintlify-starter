@@ -1,0 +1,293 @@
+---
+title: "Transaction Analyzer"
+description: "AI-powered transaction explainer for understanding what you're signing"
+icon: "magnifying-glass-chart"
+---
+
+The Transaction Analyzer provides human-readable explanations of complex blockchain transactions before you sign them. Never blindly approve a transaction again.
+
+## How It Works
+
+When you initiate a transaction, CryptoGuard intercepts and analyzes:
+
+<Steps>
+  <Step title="Transaction Interception">
+    CryptoGuard detects the pending transaction from your wallet (MetaMask, WalletConnect, etc.).
+  </Step>
+  
+  <Step title="Simulation">
+    The transaction is simulated on a forked state to predict outcomes.
+  </Step>
+  
+  <Step title="AI Analysis">
+    ChainGPT's AI model generates a natural language explanation.
+  </Step>
+  
+  <Step title="Risk Assessment">
+    Combined risk score based on contract, method, and value analysis.
+  </Step>
+</Steps>
+
+---
+
+## Transaction Breakdown
+
+```typescript
+interface TransactionAnalysis {
+  // Raw transaction data
+  rawTx: {
+    from: string;
+    to: string;
+    value: string;
+    data: string;
+    gas: string;
+    gasPrice: string;
+  };
+  
+  // Decoded function call
+  decoded: {
+    functionName: string;
+    functionSignature: string;
+    parameters: DecodedParameter[];
+  };
+  
+  // AI explanation
+  explanation: {
+    summary: string;           // One-line explanation
+    detailedBreakdown: string; // Full explanation
+    warnings: string[];        // Risk warnings
+  };
+  
+  // Simulation results
+  simulation: {
+    success: boolean;
+    gasUsed: string;
+    balanceChanges: BalanceChange[];
+    tokenTransfers: TokenTransfer[];
+    approvalChanges: ApprovalChange[];
+  };
+  
+  // Risk assessment
+  risk: {
+    score: number;
+    level: 'safe' | 'caution' | 'warning' | 'danger';
+    flags: RiskFlag[];
+  };
+}
+```
+
+---
+
+## Approval Detection
+
+CryptoGuard pays special attention to token approval transactions:
+
+### Unlimited Approvals
+
+```typescript
+// Detecting unlimited approvals
+const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
+interface ApprovalAnalysis {
+  token: string;
+  tokenSymbol: string;
+  spender: string;
+  spenderLabel: string | null;
+  amount: string;
+  isUnlimited: boolean;
+  riskLevel: 'safe' | 'caution' | 'danger';
+  recommendation: string;
+}
+```
+
+<Warning>
+  Unlimited approvals (`type(uint256).max`) give the spender contract full access to your tokens. CryptoGuard flags these as high risk and recommends setting specific limits.
+</Warning>
+
+### Approval Risk Levels
+
+| Approval Type | Risk Level | Recommendation |
+|---------------|------------|----------------|
+| Limited (exact amount) | 🟢 Safe | Approve as requested |
+| Limited (10x requested) | 🟡 Caution | Consider reducing |
+| Unlimited | 🔴 Danger | Set specific limit |
+| Unknown spender | 🔴 Danger | Do not approve |
+
+---
+
+## Balance Impact Preview
+
+Before signing, see exactly how your balances will change:
+
+```typescript
+interface BalanceChange {
+  asset: string;
+  symbol: string;
+  type: 'native' | 'erc20' | 'nft';
+  before: string;
+  after: string;
+  change: string;
+  direction: 'in' | 'out';
+  dollarValue: number | null;
+}
+
+// Example output
+const changes: BalanceChange[] = [
+  {
+    asset: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    symbol: 'WETH',
+    type: 'erc20',
+    before: '1.5',
+    after: '1.2',
+    change: '-0.3',
+    direction: 'out',
+    dollarValue: -720.50
+  },
+  {
+    asset: '0x6B175474E89094C44Da98b954EescdeCbC55c6',
+    symbol: 'DAI',
+    type: 'erc20',
+    before: '500',
+    after: '1215.47',
+    change: '+715.47',
+    direction: 'in',
+    dollarValue: 715.47
+  }
+];
+```
+
+---
+
+## Common Transaction Types
+
+CryptoGuard recognizes and explains common DeFi operations:
+
+<AccordionGroup>
+  <Accordion title="Token Swap">
+    ```
+    You are swapping 0.5 ETH for approximately 1,250 USDC on Uniswap V3.
+    
+    • Minimum received: 1,237.50 USDC (1% slippage)
+    • Price impact: 0.12%
+    • Network fee: ~$4.50
+    
+    ✅ Contract verified: Uniswap V3 Router
+    ✅ Route: ETH → WETH → USDC (direct)
+    ```
+  </Accordion>
+  
+  <Accordion title="NFT Purchase">
+    ```
+    You are purchasing Bored Ape #7294 for 35 ETH on OpenSea.
+    
+    • Seller: 0x1234...5678 (verified collector)
+    • Royalty: 2.5% (0.875 ETH to creator)
+    • Platform fee: 2.5% (0.875 ETH to OpenSea)
+    
+    ⚠️ Warning: This is a significant purchase. Verify authenticity.
+    ```
+  </Accordion>
+  
+  <Accordion title="Token Approval">
+    ```
+    You are approving Uniswap V3 Router to spend UNLIMITED USDC.
+    
+    • Spender: 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45
+    • Contract: Verified Uniswap V3 SwapRouter02
+    
+    ⚠️ Recommendation: Set a specific limit instead of unlimited.
+    ```
+  </Accordion>
+  
+  <Accordion title="Contract Deployment">
+    ```
+    You are deploying a new smart contract.
+    
+    • Estimated gas: 2,450,000
+    • Network fee: ~$125
+    • Contract type: ERC-20 Token (detected)
+    
+    ✅ No malicious patterns detected in bytecode.
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## API Integration
+
+Integrate transaction analysis into your dApp:
+
+```typescript
+import { CryptoGuard } from '@cryptoguard/sdk';
+
+const guard = new CryptoGuard({ apiKey: 'your_api_key' });
+
+// Analyze a pending transaction
+const analysis = await guard.transaction.analyze({
+  from: '0x...',
+  to: '0x...',
+  value: '500000000000000000', // 0.5 ETH
+  data: '0x38ed173900000000...' // Swap calldata
+});
+
+console.log(analysis.explanation.summary);
+// "Swap 0.5 ETH for ~1,250 USDC on Uniswap V3"
+
+if (analysis.risk.score > 60) {
+  console.warn('High risk transaction:', analysis.risk.flags);
+}
+```
+
+### Real-Time Simulation
+
+```typescript
+const simulation = await guard.transaction.simulate({
+  chainId: 1,
+  from: '0x...',
+  to: '0x...',
+  data: '0x...',
+  value: '0'
+});
+
+console.log('Gas estimate:', simulation.gasUsed);
+console.log('Will succeed:', simulation.success);
+console.log('Balance changes:', simulation.balanceChanges);
+```
+
+---
+
+## Risk Flags
+
+Common transaction risk flags:
+
+| Flag | Severity | Description |
+|------|----------|-------------|
+| `unlimited_approval` | 🔴 High | Approving max uint256 tokens |
+| `unverified_contract` | 🟠 Medium | Contract source not verified |
+| `high_gas` | 🟡 Low | Unusually high gas estimate |
+| `new_contract` | 🟠 Medium | Contract deployed < 24h ago |
+| `suspicious_data` | 🔴 High | Unusual function call pattern |
+| `value_mismatch` | 🔴 High | Transfer amount differs from display |
+| `hidden_transfer` | 🔴 Critical | Undisclosed token movement |
+| `approval_to_eoa` | 🔴 Critical | Approving tokens to non-contract |
+
+---
+
+## Settings
+
+Configure transaction analyzer behavior:
+
+```typescript
+interface AnalyzerSettings {
+  autoAnalyze: boolean;        // Default: true
+  blockHighRisk: boolean;      // Default: true
+  riskThreshold: number;       // Default: 70
+  showSimulation: boolean;     // Default: true
+  notifyOnApproval: boolean;   // Default: true
+}
+```
+
+<Note>
+  Transaction analysis adds ~200ms to signing flow. This delay is worth the protection against malicious transactions.
+</Note>

@@ -1,0 +1,299 @@
+---
+title: "Scan Transaction"
+api: "POST https://api.cryptoguard.ai/v1/scan/transaction"
+description: "Analyze a transaction before signing for security risks"
+---
+
+Pre-signing transaction analysis with simulation, balance changes preview, and risk assessment.
+
+## Authorization
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer cg_live_xxxxxxxx`
+</ParamField>
+
+## Body Parameters
+
+<ParamField body="from" type="string" required>
+  Sender wallet address.
+</ParamField>
+
+<ParamField body="to" type="string" required>
+  Recipient/contract address.
+</ParamField>
+
+<ParamField body="value" type="string" default="0">
+  Transaction value in wei (as string).
+</ParamField>
+
+<ParamField body="data" type="string">
+  Transaction calldata (hex encoded). Required for contract interactions.
+</ParamField>
+
+<ParamField body="chain" type="string" default="ethereum">
+  Blockchain network.
+  
+  **Options**: `ethereum`, `bsc`, `polygon`
+</ParamField>
+
+<ParamField body="options" type="object">
+  Analysis options.
+  
+  <Expandable title="options properties">
+    <ParamField body="options.simulate" type="boolean" default="true">
+      Run full transaction simulation
+    </ParamField>
+    
+    <ParamField body="options.explain" type="boolean" default="true">
+      Generate AI explanation
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="riskScore" type="integer">
+  Transaction risk score (0-100)
+</ResponseField>
+
+<ResponseField name="riskLevel" type="string">
+  Risk classification: `safe`, `low`, `medium`, `high`, `critical`
+</ResponseField>
+
+<ResponseField name="decoded" type="object">
+  Decoded transaction data.
+  
+  <Expandable title="decoded properties">
+    <ResponseField name="decoded.functionName" type="string">
+      Decoded function name
+    </ResponseField>
+    
+    <ResponseField name="decoded.parameters" type="array">
+      Function parameters with names and values
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="explanation" type="object">
+  AI-generated explanation.
+  
+  <Expandable title="explanation properties">
+    <ResponseField name="explanation.summary" type="string">
+      One-line transaction summary
+    </ResponseField>
+    
+    <ResponseField name="explanation.details" type="string">
+      Detailed explanation
+    </ResponseField>
+    
+    <ResponseField name="explanation.warnings" type="array">
+      Risk warnings
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="simulation" type="object">
+  Transaction simulation results.
+  
+  <Expandable title="simulation properties">
+    <ResponseField name="simulation.success" type="boolean">
+      Whether transaction would succeed
+    </ResponseField>
+    
+    <ResponseField name="simulation.gasUsed" type="string">
+      Estimated gas used
+    </ResponseField>
+    
+    <ResponseField name="simulation.balanceChanges" type="array">
+      Predicted balance changes
+    </ResponseField>
+    
+    <ResponseField name="simulation.approvalChanges" type="array">
+      Token approval changes
+    </ResponseField>
+    
+    <ResponseField name="simulation.revertReason" type="string">
+      Revert reason if simulation failed
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="warnings" type="array">
+  Security warnings with severity and description.
+</ResponseField>
+
+<ResponseField name="recommendation" type="string">
+  Action recommendation: `PROCEED`, `REVIEW`, `CAUTION`, `BLOCK`
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --request POST \
+  --url https://api.cryptoguard.ai/v1/scan/transaction \
+  --header 'Authorization: Bearer cg_live_xxxxxxxxxxxxxxxx' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "from": "0x742d35Cc6634C0532925a3b844Bc454c459dFE2C",
+    "to": "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+    "value": "500000000000000000",
+    "data": "0x5ae401dc...",
+    "chain": "ethereum",
+    "options": {
+      "simulate": true,
+      "explain": true
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.cryptoguard.ai/v1/scan/transaction', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    from: '0x742d35Cc6634C0532925a3b844Bc454c459dFE2C',
+    to: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+    value: '500000000000000000',
+    data: '0x5ae401dc...',
+    chain: 'ethereum'
+  })
+});
+
+const data = await response.json();
+console.log('Summary:', data.data.explanation.summary);
+console.log('Warnings:', data.data.warnings);
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.cryptoguard.ai/v1/scan/transaction',
+    headers={
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'from': '0x742d35Cc6634C0532925a3b844Bc454c459dFE2C',
+        'to': '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+        'value': '500000000000000000',
+        'data': '0x5ae401dc...',
+        'chain': 'ethereum'
+    }
+)
+
+data = response.json()
+print(f"Summary: {data['data']['explanation']['summary']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Safe Swap Transaction
+{
+  "success": true,
+  "data": {
+    "riskScore": 12,
+    "riskLevel": "low",
+    "decoded": {
+      "functionName": "exactInputSingle",
+      "parameters": [
+        { "name": "tokenIn", "value": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
+        { "name": "tokenOut", "value": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+        { "name": "amountIn", "value": "500000000000000000" },
+        { "name": "amountOutMinimum", "value": "1237500000" }
+      ]
+    },
+    "explanation": {
+      "summary": "Swap 0.5 ETH for approximately 1,247 USDC on Uniswap V3",
+      "details": "This transaction swaps 0.5 WETH for USDC using Uniswap V3 SwapRouter. The minimum output is set to 1,237.50 USDC, representing ~1% slippage tolerance. The router contract is verified and widely used.",
+      "warnings": []
+    },
+    "simulation": {
+      "success": true,
+      "gasUsed": "184532",
+      "balanceChanges": [
+        {
+          "asset": "ETH",
+          "before": "2.5",
+          "after": "2.0",
+          "change": "-0.5"
+        },
+        {
+          "asset": "USDC",
+          "before": "500.00",
+          "after": "1747.23",
+          "change": "+1247.23"
+        }
+      ],
+      "approvalChanges": []
+    },
+    "warnings": [],
+    "recommendation": "PROCEED"
+  },
+  "meta": {
+    "requestId": "req_tx_swap_safe",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 523
+  }
+}
+```
+
+```json 200 - Dangerous Unlimited Approval
+{
+  "success": true,
+  "data": {
+    "riskScore": 75,
+    "riskLevel": "high",
+    "decoded": {
+      "functionName": "approve",
+      "parameters": [
+        { "name": "spender", "value": "0xUNKNOWN1234567890abcdef1234567890abcdef" },
+        { "name": "amount", "value": "115792089237316195423570985008687907853269984665640564039457584007913129639935" }
+      ]
+    },
+    "explanation": {
+      "summary": "Approve UNLIMITED USDC spending for unknown contract",
+      "details": "This transaction grants unlimited USDC spending permission to an unverified contract. The spender address has no known label and the contract source is not verified.",
+      "warnings": [
+        "Unlimited token approval requested",
+        "Spender contract is not verified",
+        "Spender has no known label or history"
+      ]
+    },
+    "simulation": {
+      "success": true,
+      "gasUsed": "46284",
+      "balanceChanges": [],
+      "approvalChanges": [
+        {
+          "token": "USDC",
+          "spender": "0xUNKNOWN...",
+          "previousAllowance": "0",
+          "newAllowance": "unlimited"
+        }
+      ]
+    },
+    "warnings": [
+      {
+        "severity": "high",
+        "code": "UNLIMITED_APPROVAL",
+        "message": "This grants unlimited access to your USDC tokens"
+      },
+      {
+        "severity": "high",
+        "code": "UNVERIFIED_SPENDER",
+        "message": "The spender contract is not verified"
+      }
+    ],
+    "recommendation": "BLOCK"
+  },
+  "meta": {
+    "requestId": "req_tx_approval_risky",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 487
+  }
+}
+```
+</ResponseExample>

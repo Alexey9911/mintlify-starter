@@ -1,0 +1,309 @@
+---
+title: "AI Engine"
+description: "Machine learning pipeline and ChainGPT AI integration"
+icon: "brain"
+---
+
+CryptoGuard's AI engine combines multiple ML models with ChainGPT's large language model for comprehensive threat detection.
+
+## Model Architecture
+
+### Multi-Model Pipeline
+
+```
+                    Input Data
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│   Phishing   │ │   Contract   │ │ Transaction  │
+│   Detector   │ │   Analyzer   │ │  Classifier  │
+│  (FastText)  │ │  (GNN/AST)   │ │   (LSTM)     │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       │                │                │
+       └────────────────┼────────────────┘
+                        ▼
+              ┌──────────────────┐
+              │   Risk Fusion    │
+              │   (Ensemble)     │
+              └────────┬─────────┘
+                       │
+                       ▼
+              ┌──────────────────┐
+              │   ChainGPT LLM   │
+              │  (Explanation)   │
+              └────────┬─────────┘
+                       │
+                       ▼
+                 Final Output
+```
+
+---
+
+## Phishing Detection Model
+
+### Model Specifications
+
+| Property | Value |
+|----------|-------|
+| Architecture | FastText + LSTM Hybrid |
+| Input | URL + Page Content Features |
+| Output | Phishing probability (0-1) |
+| Training Data | 5M+ labeled URLs |
+| Accuracy | 99.7% |
+| Inference Time | <10ms |
+
+### Feature Engineering
+
+```typescript
+interface PhishingFeatures {
+  // URL features
+  urlLength: number;
+  domainAge: number;
+  hasIP: boolean;
+  numSubdomains: number;
+  entropyScore: number;
+  typosquatDistance: number;  // Levenshtein to known domains
+  
+  // Content features
+  hasLoginForm: boolean;
+  hasSeedPhraseInput: boolean;
+  hasWalletConnect: boolean;
+  brandMentions: string[];
+  urgencyScore: number;
+  
+  // SSL features
+  sslValid: boolean;
+  sslAge: number;
+  sslIssuer: string;
+}
+```
+
+### Training Pipeline
+
+```python
+# Phishing model training
+from cryptoguard.ml import PhishingDetector
+
+detector = PhishingDetector(
+    embedding_dim=300,
+    lstm_units=128,
+    dropout=0.3
+)
+
+# Load pre-trained embeddings
+detector.load_embeddings('fasttext-web3.bin')
+
+# Train on labeled dataset
+detector.fit(
+    train_data='phishing_urls_train.parquet',
+    val_data='phishing_urls_val.parquet',
+    epochs=50,
+    batch_size=256,
+    early_stopping=True
+)
+
+# Export for inference
+detector.export('phishing_model_v3.onnx')
+```
+
+---
+
+## Contract Analysis Model
+
+### Graph Neural Network
+
+Smart contracts are analyzed as control flow graphs:
+
+```typescript
+interface ContractGraph {
+  nodes: {
+    id: string;
+    type: 'function' | 'modifier' | 'event' | 'state';
+    opcode?: string;
+    attributes: Record<string, any>;
+  }[];
+  edges: {
+    source: string;
+    target: string;
+    type: 'call' | 'jump' | 'return' | 'revert';
+  }[];
+}
+```
+
+### Model Specifications
+
+| Property | Value |
+|----------|-------|
+| Architecture | GraphSAGE + Attention |
+| Input | Contract CFG + AST |
+| Output | Threat classifications |
+| Training Data | 2M+ contracts |
+| Accuracy | 99.4% |
+| Inference Time | <50ms |
+
+### Threat Categories
+
+```typescript
+type ContractThreat = 
+  | 'honeypot'              // Buy but can't sell
+  | 'hidden_mint'           // Unlimited token creation
+  | 'blacklist'             // Address blocking
+  | 'fee_manipulation'      // Dynamic fee changes
+  | 'proxy_danger'          // Risky upgrade patterns
+  | 'reentrancy'            // Reentrancy vulnerability
+  | 'oracle_manipulation'   // Price oracle attacks
+  | 'flash_loan_risk';      // Flash loan vulnerabilities
+```
+
+---
+
+## Transaction Classifier
+
+### LSTM Sequence Model
+
+Transactions are analyzed as sequences of actions:
+
+```typescript
+interface TransactionSequence {
+  actions: {
+    type: 'transfer' | 'approval' | 'swap' | 'mint' | 'burn' | 'call';
+    target: string;
+    value: bigint;
+    data: string;
+  }[];
+  context: {
+    fromRisk: number;
+    toRisk: number;
+    historicalPatterns: string[];
+  };
+}
+```
+
+### Model Output
+
+```typescript
+interface TransactionClassification {
+  category: 'swap' | 'transfer' | 'approval' | 'nft' | 'defi' | 'suspicious';
+  confidence: number;
+  riskFactors: {
+    factor: string;
+    weight: number;
+    description: string;
+  }[];
+  anomalyScore: number;  // 0-1, higher = more unusual
+}
+```
+
+---
+
+## ChainGPT Integration
+
+CryptoGuard uses ChainGPT for natural language explanations:
+
+```typescript
+interface ChainGPTRequest {
+  model: 'chaingpt-4' | 'chaingpt-3.5-turbo';
+  context: {
+    transactionData: RawTransaction;
+    contractAnalysis: ContractAnalysis;
+    riskAssessment: RiskScore;
+  };
+  task: 'explain' | 'summarize' | 'warn';
+  outputFormat: 'text' | 'structured';
+}
+
+interface ChainGPTResponse {
+  explanation: string;
+  warnings: string[];
+  recommendations: string[];
+  confidence: number;
+}
+```
+
+### Example Explanation
+
+```typescript
+const explanation = await chainGPT.explain({
+  context: {
+    transactionData: {
+      to: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+      data: '0x5ae401dc...',
+      value: '500000000000000000'
+    },
+    contractAnalysis: { verified: true, name: 'SwapRouter02' },
+    riskAssessment: { score: 15 }
+  },
+  task: 'explain'
+});
+
+// Output:
+// "You are swapping 0.5 ETH for USDC on Uniswap V3. The router contract
+//  is verified and widely used. Expected output: ~1,247 USDC with 0.3%
+//  slippage tolerance. This is a low-risk transaction."
+```
+
+---
+
+## ML Infrastructure
+
+### Training Infrastructure
+
+| Component | Specification |
+|-----------|---------------|
+| GPU Cluster | 8x NVIDIA A100 80GB |
+| Training Framework | PyTorch 2.0 |
+| Experiment Tracking | MLflow |
+| Feature Store | Feast |
+| Model Registry | MLflow |
+
+### Inference Infrastructure
+
+| Component | Specification |
+|-----------|---------------|
+| Inference Server | NVIDIA Triton |
+| Model Format | ONNX |
+| Scaling | Kubernetes HPA |
+| Latency Target | <50ms p99 |
+| Throughput | 10,000 req/s |
+
+### Model Updates
+
+```yaml
+# Model deployment pipeline
+pipeline:
+  - stage: training
+    trigger: weekly
+    steps:
+      - fetch_new_labels
+      - retrain_models
+      - evaluate_metrics
+      
+  - stage: validation
+    steps:
+      - shadow_deployment
+      - a_b_testing
+      - canary_release
+      
+  - stage: production
+    steps:
+      - gradual_rollout
+      - monitoring
+      - rollback_on_degradation
+```
+
+<Note>
+  Models are retrained weekly with new labeled data. Critical security updates trigger emergency retraining.
+</Note>
+
+---
+
+## Performance Metrics
+
+| Metric | Phishing | Contract | Transaction |
+|--------|----------|----------|-------------|
+| Precision | 99.8% | 99.2% | 98.7% |
+| Recall | 99.5% | 99.6% | 99.1% |
+| F1 Score | 99.65% | 99.4% | 98.9% |
+| Latency (p50) | 8ms | 35ms | 22ms |
+| Latency (p99) | 25ms | 85ms | 55ms |

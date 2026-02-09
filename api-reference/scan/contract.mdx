@@ -1,0 +1,292 @@
+---
+title: "Scan Contract"
+api: "POST https://api.cryptoguard.ai/v1/scan/contract"
+description: "Analyze a smart contract for security vulnerabilities and malicious code"
+---
+
+Perform deep analysis of smart contract bytecode to detect honeypots, rug pulls, and malicious functions.
+
+## Authorization
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer cg_live_xxxxxxxx`
+</ParamField>
+
+## Body Parameters
+
+<ParamField body="address" type="string" required>
+  Contract address (42 characters, starting with 0x).
+  
+  **Example**: `0x6B175474E89094C44Da98b954EedcDC9BC55c6`
+</ParamField>
+
+<ParamField body="chain" type="string" required>
+  Blockchain network.
+  
+  **Options**: `ethereum` (chainId: 1), `bsc` (chainId: 56), `polygon` (chainId: 137)
+</ParamField>
+
+<ParamField body="options" type="object">
+  Analysis configuration.
+  
+  <Expandable title="options properties">
+    <ParamField body="options.includeAbi" type="boolean" default="true">
+      Include decoded ABI in response
+    </ParamField>
+    
+    <ParamField body="options.includeSourceCode" type="boolean" default="false">
+      Include verified source code if available
+    </ParamField>
+    
+    <ParamField body="options.simulateTrade" type="boolean" default="true">
+      Simulate buy/sell to detect honeypots
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="address" type="string">
+  Contract address analyzed
+</ResponseField>
+
+<ResponseField name="chain" type="string">
+  Blockchain network
+</ResponseField>
+
+<ResponseField name="riskScore" type="integer">
+  Overall risk score (0-100)
+</ResponseField>
+
+<ResponseField name="riskLevel" type="string">
+  Risk classification: `safe`, `low`, `medium`, `high`, `critical`
+</ResponseField>
+
+<ResponseField name="isHoneypot" type="boolean">
+  Whether the contract is identified as a honeypot
+</ResponseField>
+
+<ResponseField name="contractDetails" type="object">
+  Contract metadata.
+  
+  <Expandable title="contractDetails properties">
+    <ResponseField name="contractDetails.name" type="string">
+      Contract name (if verified)
+    </ResponseField>
+    
+    <ResponseField name="contractDetails.symbol" type="string">
+      Token symbol (for token contracts)
+    </ResponseField>
+    
+    <ResponseField name="contractDetails.verified" type="boolean">
+      Source code verification status
+    </ResponseField>
+    
+    <ResponseField name="contractDetails.createdAt" type="string">
+      Deployment timestamp (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="contractDetails.creator" type="string">
+      Deployer address
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tokenSecurity" type="object">
+  Token-specific security analysis (for ERC-20/BEP-20).
+  
+  <Expandable title="tokenSecurity properties">
+    <ResponseField name="tokenSecurity.buyTax" type="number">
+      Buy tax percentage
+    </ResponseField>
+    
+    <ResponseField name="tokenSecurity.sellTax" type="number">
+      Sell tax percentage
+    </ResponseField>
+    
+    <ResponseField name="tokenSecurity.isMintable" type="boolean">
+      Owner can mint tokens
+    </ResponseField>
+    
+    <ResponseField name="tokenSecurity.canBlacklist" type="boolean">
+      Owner can blacklist addresses
+    </ResponseField>
+    
+    <ResponseField name="tokenSecurity.canPause" type="boolean">
+      Trading can be paused
+    </ResponseField>
+    
+    <ResponseField name="tokenSecurity.ownershipRenounced" type="boolean">
+      Ownership has been renounced
+    </ResponseField>
+    
+    <ResponseField name="tokenSecurity.hiddenOwner" type="boolean">
+      Ownership is obfuscated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="threats" type="array">
+  Detected threat indicators.
+  
+  **Possible values**: `honeypot`, `hidden_mint`, `blacklist_function`, `high_tax`, `rug_pull_risk`, `proxy_contract`, `unverified`
+</ResponseField>
+
+<ResponseField name="recommendation" type="string">
+  Action recommendation: `SAFE`, `CAUTION`, `AVOID`, `BLOCK`
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --request POST \
+  --url https://api.cryptoguard.ai/v1/scan/contract \
+  --header 'Authorization: Bearer cg_live_xxxxxxxxxxxxxxxx' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "chain": "ethereum",
+    "options": {
+      "includeAbi": true,
+      "simulateTrade": true
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.cryptoguard.ai/v1/scan/contract', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    chain: 'ethereum',
+    options: {
+      includeAbi: true,
+      simulateTrade: true
+    }
+  })
+});
+
+const data = await response.json();
+console.log('Risk Score:', data.data.riskScore);
+console.log('Is Honeypot:', data.data.isHoneypot);
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.cryptoguard.ai/v1/scan/contract',
+    headers={
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'address': '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+        'chain': 'ethereum',
+        'options': {
+            'includeAbi': True,
+            'simulateTrade': True
+        }
+    }
+)
+
+data = response.json()
+print(f"Risk Score: {data['data']['riskScore']}")
+print(f"Is Honeypot: {data['data']['isHoneypot']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Safe Contract (USDT)
+{
+  "success": true,
+  "data": {
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "chain": "ethereum",
+    "riskScore": 8,
+    "riskLevel": "safe",
+    "isHoneypot": false,
+    "contractDetails": {
+      "name": "TetherToken",
+      "symbol": "USDT",
+      "verified": true,
+      "createdAt": "2017-11-28T00:00:00Z",
+      "creator": "0x36928500Bc1dCd7af6a2B4008875CC336b927D57"
+    },
+    "tokenSecurity": {
+      "buyTax": 0,
+      "sellTax": 0,
+      "isMintable": true,
+      "canBlacklist": true,
+      "canPause": true,
+      "ownershipRenounced": false,
+      "hiddenOwner": false
+    },
+    "threats": [],
+    "recommendation": "SAFE"
+  },
+  "meta": {
+    "requestId": "req_contract_abc123",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 456
+  }
+}
+```
+
+```json 200 - Honeypot Detected
+{
+  "success": true,
+  "data": {
+    "address": "0xDEAD000000000000000000000000000000000000",
+    "chain": "bsc",
+    "riskScore": 95,
+    "riskLevel": "critical",
+    "isHoneypot": true,
+    "contractDetails": {
+      "name": "FakeToken",
+      "symbol": "FAKE",
+      "verified": false,
+      "createdAt": "2024-01-14T08:00:00Z",
+      "creator": "0x1234567890abcdef1234567890abcdef12345678"
+    },
+    "tokenSecurity": {
+      "buyTax": 5,
+      "sellTax": 99,
+      "isMintable": true,
+      "canBlacklist": true,
+      "canPause": true,
+      "ownershipRenounced": false,
+      "hiddenOwner": true
+    },
+    "threats": ["honeypot", "high_tax", "hidden_mint", "unverified"],
+    "recommendation": "BLOCK"
+  },
+  "meta": {
+    "requestId": "req_contract_xyz789",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 523
+  }
+}
+```
+
+```json 404 - Contract Not Found
+{
+  "success": false,
+  "error": {
+    "code": "CONTRACT_NOT_FOUND",
+    "message": "No contract deployed at this address",
+    "details": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "ethereum"
+    }
+  },
+  "meta": {
+    "requestId": "req_contract_notfound",
+    "timestamp": "2024-01-15T14:32:00.847Z"
+  }
+}
+```
+</ResponseExample>

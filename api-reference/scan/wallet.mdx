@@ -1,0 +1,249 @@
+---
+title: "Scan Wallet"
+api: "GET https://api.cryptoguard.ai/v1/scan/wallet/{address}"
+description: "Assess wallet risk based on transaction history and associations"
+---
+
+Analyze a wallet address for risk indicators including funding sources, associations, and transaction patterns.
+
+## Authorization
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer cg_live_xxxxxxxx`
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="address" type="string" required>
+  Wallet address to analyze (42 characters, starting with 0x).
+  
+  **Example**: `0x742d35Cc6634C0532925a3b844Bc454c459dFE2C`
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="chain" type="string" default="ethereum">
+  Blockchain network.
+  
+  **Options**: `ethereum`, `bsc`, `polygon`
+</ParamField>
+
+<ParamField query="includeTransactions" type="boolean" default="false">
+  Include recent transaction summary
+</ParamField>
+
+<ParamField query="includeApprovals" type="boolean" default="false">
+  Include active token approvals
+</ParamField>
+
+## Response
+
+<ResponseField name="address" type="string">
+  Wallet address analyzed
+</ResponseField>
+
+<ResponseField name="chain" type="string">
+  Blockchain network
+</ResponseField>
+
+<ResponseField name="riskScore" type="integer">
+  Overall risk score (0-100)
+</ResponseField>
+
+<ResponseField name="riskLevel" type="string">
+  Risk classification: `safe`, `low`, `medium`, `high`, `critical`
+</ResponseField>
+
+<ResponseField name="labels" type="array">
+  Known labels for this address.
+  
+  **Possible values**: `exchange`, `defi_protocol`, `whale`, `smart_money`, `mev_bot`, `hacker`, `scammer`, `mixer`, `bridge`, `multisig`, `dao_treasury`
+</ResponseField>
+
+<ResponseField name="profile" type="object">
+  Wallet profile information.
+  
+  <Expandable title="profile properties">
+    <ResponseField name="profile.age" type="integer">
+      Wallet age in days
+    </ResponseField>
+    
+    <ResponseField name="profile.transactionCount" type="integer">
+      Total transaction count
+    </ResponseField>
+    
+    <ResponseField name="profile.firstSeen" type="string">
+      First transaction timestamp (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="profile.lastSeen" type="string">
+      Most recent transaction timestamp (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="associations" type="object">
+  Wallet associations and connections.
+  
+  <Expandable title="associations properties">
+    <ResponseField name="associations.knownEntities" type="array">
+      Known protocols/exchanges interacted with
+    </ResponseField>
+    
+    <ResponseField name="associations.flaggedAddresses" type="array">
+      Risky addresses this wallet has interacted with
+    </ResponseField>
+    
+    <ResponseField name="associations.fundingSources" type="array">
+      Initial funding source labels
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="riskFactors" type="array">
+  Contributing risk factors.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --request GET \
+  --url 'https://api.cryptoguard.ai/v1/scan/wallet/0x742d35Cc6634C0532925a3b844Bc454c459dFE2C?chain=ethereum&includeApprovals=true' \
+  --header 'Authorization: Bearer cg_live_xxxxxxxxxxxxxxxx'
+```
+
+```javascript JavaScript
+const address = '0x742d35Cc6634C0532925a3b844Bc454c459dFE2C';
+
+const response = await fetch(
+  `https://api.cryptoguard.ai/v1/scan/wallet/${address}?chain=ethereum&includeApprovals=true`,
+  {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    }
+  }
+);
+
+const data = await response.json();
+console.log('Risk Score:', data.data.riskScore);
+console.log('Labels:', data.data.labels);
+```
+
+```python Python
+import requests
+
+address = '0x742d35Cc6634C0532925a3b844Bc454c459dFE2C'
+
+response = requests.get(
+    f'https://api.cryptoguard.ai/v1/scan/wallet/{address}',
+    headers={'Authorization': f'Bearer {api_key}'},
+    params={
+        'chain': 'ethereum',
+        'includeApprovals': True
+    }
+)
+
+data = response.json()
+print(f"Risk Score: {data['data']['riskScore']}")
+print(f"Labels: {data['data']['labels']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Normal Wallet
+{
+  "success": true,
+  "data": {
+    "address": "0x742d35Cc6634C0532925a3b844Bc454c459dFE2C",
+    "chain": "ethereum",
+    "riskScore": 15,
+    "riskLevel": "low",
+    "labels": [],
+    "profile": {
+      "age": 847,
+      "transactionCount": 1523,
+      "firstSeen": "2021-09-15T10:23:00Z",
+      "lastSeen": "2024-01-15T08:45:00Z"
+    },
+    "associations": {
+      "knownEntities": ["Uniswap", "OpenSea", "Aave"],
+      "flaggedAddresses": [],
+      "fundingSources": ["Coinbase"]
+    },
+    "riskFactors": []
+  },
+  "meta": {
+    "requestId": "req_wallet_normal",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 312
+  }
+}
+```
+
+```json 200 - High Risk Wallet
+{
+  "success": true,
+  "data": {
+    "address": "0xBAD0000000000000000000000000000000000000",
+    "chain": "ethereum",
+    "riskScore": 87,
+    "riskLevel": "high",
+    "labels": ["scammer"],
+    "profile": {
+      "age": 14,
+      "transactionCount": 892,
+      "firstSeen": "2024-01-01T00:00:00Z",
+      "lastSeen": "2024-01-15T12:00:00Z"
+    },
+    "associations": {
+      "knownEntities": ["Tornado Cash"],
+      "flaggedAddresses": [
+        "0xHACKER1234567890abcdef1234567890abcdef12",
+        "0xSCAM00001234567890abcdef1234567890abcdef"
+      ],
+      "fundingSources": ["mixer"]
+    },
+    "riskFactors": [
+      "Funded from mixer",
+      "Associated with known scam addresses",
+      "New wallet with high activity",
+      "Rapid fund movement pattern"
+    ]
+  },
+  "meta": {
+    "requestId": "req_wallet_risky",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 287
+  }
+}
+```
+
+```json 200 - Whale Wallet
+{
+  "success": true,
+  "data": {
+    "address": "0xWHALE00000000000000000000000000000000000",
+    "chain": "ethereum",
+    "riskScore": 5,
+    "riskLevel": "safe",
+    "labels": ["whale", "smart_money"],
+    "profile": {
+      "age": 2156,
+      "transactionCount": 15847,
+      "firstSeen": "2018-03-15T00:00:00Z",
+      "lastSeen": "2024-01-15T14:00:00Z"
+    },
+    "associations": {
+      "knownEntities": ["Binance", "Lido", "Curve", "Compound"],
+      "flaggedAddresses": [],
+      "fundingSources": ["Binance", "Kraken"]
+    },
+    "riskFactors": []
+  },
+  "meta": {
+    "requestId": "req_wallet_whale",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 456
+  }
+}
+```
+</ResponseExample>

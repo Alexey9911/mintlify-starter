@@ -1,0 +1,248 @@
+---
+title: "Error Handling"
+description: "API error codes, response formats, and retry strategies"
+icon: "triangle-exclamation"
+---
+
+CryptoGuard API uses standard HTTP status codes and provides detailed error information.
+
+## Error Response Format
+
+All errors follow a consistent structure:
+
+```typescript
+interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;           // Machine-readable error code
+    message: string;        // Human-readable description
+    details?: object;       // Additional context
+    field?: string;         // For validation errors
+  };
+  meta: {
+    requestId: string;
+    timestamp: string;
+  };
+}
+```
+
+### Example Error Response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid Ethereum address format",
+    "field": "address",
+    "details": {
+      "provided": "0xinvalid",
+      "expected": "42 character hex string starting with 0x"
+    }
+  },
+  "meta": {
+    "requestId": "req_abc123def456",
+    "timestamp": "2024-01-15T14:32:00.847Z"
+  }
+}
+```
+
+---
+
+## HTTP Status Codes
+
+| Status | Meaning | Retry? |
+|--------|---------|--------|
+| 200 | Success | - |
+| 201 | Created | - |
+| 400 | Bad Request | No |
+| 401 | Unauthorized | No |
+| 403 | Forbidden | No |
+| 404 | Not Found | No |
+| 429 | Rate Limited | Yes (with backoff) |
+| 500 | Server Error | Yes (with backoff) |
+| 502 | Bad Gateway | Yes (with backoff) |
+| 503 | Service Unavailable | Yes (with backoff) |
+
+---
+
+## Error Codes Reference
+
+### Authentication Errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `MISSING_AUTH` | 401 | Authorization header not provided |
+| `INVALID_API_KEY` | 401 | API key format is invalid |
+| `EXPIRED_API_KEY` | 401 | API key has been revoked |
+| `INSUFFICIENT_SCOPE` | 403 | Key lacks required permissions |
+
+### Validation Errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `VALIDATION_ERROR` | 400 | Request body validation failed |
+| `INVALID_ADDRESS` | 400 | Blockchain address format invalid |
+| `INVALID_CHAIN` | 400 | Unsupported blockchain |
+| `INVALID_URL` | 400 | URL format invalid |
+| `MISSING_PARAMETER` | 400 | Required parameter not provided |
+
+### Resource Errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `NOT_FOUND` | 404 | Requested resource doesn't exist |
+| `CONTRACT_NOT_FOUND` | 404 | Contract not deployed at address |
+| `CHAIN_NOT_SUPPORTED` | 400 | Chain ID not supported |
+
+### Rate Limiting
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+| `QUOTA_EXCEEDED` | 429 | Daily quota reached |
+
+### Server Errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| `SERVICE_UNAVAILABLE` | 503 | Service temporarily down |
+| `UPSTREAM_ERROR` | 502 | Data provider unavailable |
+
+---
+
+## Retry Strategy
+
+Implement exponential backoff for transient errors:
+
+```typescript
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  maxRetries = 3
+): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Don't retry client errors (except 429)
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        return response;
+      }
+      
+      // Handle rate limiting
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+        await sleep(waitMs);
+        continue;
+      }
+      
+      // Retry server errors
+      if (response.status >= 500) {
+        const waitMs = Math.pow(2, attempt) * 1000;  // 1s, 2s, 4s
+        await sleep(waitMs);
+        continue;
+      }
+      
+      return response;
+      
+    } catch (error) {
+      // Network error - retry with backoff
+      if (attempt === maxRetries - 1) throw error;
+      await sleep(Math.pow(2, attempt) * 1000);
+    }
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
+
+### Rate Limit Headers
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1705329720
+Retry-After: 30
+```
+
+---
+
+## Error Handling Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { CryptoGuard, APIError } from '@cryptoguard/sdk';
+
+const client = new CryptoGuard({ apiKey });
+
+try {
+  const result = await client.scan.url('https://example.com');
+} catch (error) {
+  if (error instanceof APIError) {
+    switch (error.code) {
+      case 'RATE_LIMIT_EXCEEDED':
+        // Wait and retry
+        await sleep(error.retryAfter * 1000);
+        break;
+      case 'INVALID_API_KEY':
+        // Check API key configuration
+        console.error('Invalid API key');
+        break;
+      case 'VALIDATION_ERROR':
+        // Fix request parameters
+        console.error('Validation error:', error.field, error.message);
+        break;
+      default:
+        console.error('API error:', error.message);
+    }
+  } else {
+    // Network or other error
+    console.error('Request failed:', error);
+  }
+}
+```
+
+### Python
+
+```python
+from cryptoguard import CryptoGuard, APIError, RateLimitError
+import time
+
+client = CryptoGuard(api_key=api_key)
+
+try:
+    result = client.scan.url('https://example.com')
+except RateLimitError as e:
+    time.sleep(e.retry_after)
+    result = client.scan.url('https://example.com')
+except APIError as e:
+    print(f"API Error: {e.code} - {e.message}")
+except Exception as e:
+    print(f"Request failed: {e}")
+```
+
+---
+
+## Debugging
+
+Include your request ID when contacting support:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123def456"  // Include this in support tickets
+  }
+}
+```
+
+<Note>
+  Request IDs are unique per request and help our team trace issues through our systems.
+</Note>

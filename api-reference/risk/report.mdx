@@ -1,0 +1,223 @@
+---
+title: "Get Risk Report"
+api: "GET https://api.cryptoguard.ai/v1/risk/report/{entity}"
+description: "Generate a comprehensive risk analysis report"
+---
+
+Full risk analysis report with detailed breakdown of all risk factors, historical data, and recommendations.
+
+## Authorization
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer cg_live_xxxxxxxx`
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="entity" type="string" required>
+  Wallet address, contract address, or URL to analyze.
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="chain" type="string" default="ethereum">
+  Blockchain network.
+  
+  **Options**: `ethereum`, `bsc`, `polygon`
+</ParamField>
+
+<ParamField query="format" type="string" default="json">
+  Response format.
+  
+  **Options**: `json`, `pdf`
+</ParamField>
+
+## Response
+
+<ResponseField name="entity" type="string">
+  Analyzed entity
+</ResponseField>
+
+<ResponseField name="entityType" type="string">
+  Entity type: `wallet`, `contract`, `url`
+</ResponseField>
+
+<ResponseField name="summary" type="object">
+  Report summary.
+  
+  <Expandable title="summary properties">
+    <ResponseField name="summary.riskScore" type="integer">
+      Overall risk score (0-100)
+    </ResponseField>
+    
+    <ResponseField name="summary.riskLevel" type="string">
+      Risk level classification
+    </ResponseField>
+    
+    <ResponseField name="summary.verdict" type="string">
+      Final verdict: `safe`, `caution`, `avoid`
+    </ResponseField>
+    
+    <ResponseField name="summary.generatedAt" type="string">
+      Report generation timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="riskBreakdown" type="object">
+  Detailed score breakdown by category.
+  
+  <Expandable title="riskBreakdown properties">
+    <ResponseField name="riskBreakdown.ownership" type="object">
+      Ownership risk factors and scores
+    </ResponseField>
+    
+    <ResponseField name="riskBreakdown.code" type="object">
+      Code/contract risk factors
+    </ResponseField>
+    
+    <ResponseField name="riskBreakdown.liquidity" type="object">
+      Liquidity risk factors
+    </ResponseField>
+    
+    <ResponseField name="riskBreakdown.associations" type="object">
+      Association risk factors
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="history" type="array">
+  Historical risk score changes
+</ResponseField>
+
+<ResponseField name="recommendations" type="array">
+  Actionable security recommendations
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --request GET \
+  --url 'https://api.cryptoguard.ai/v1/risk/report/0xdAC17F958D2ee523a2206206994597C13D831ec7?chain=ethereum' \
+  --header 'Authorization: Bearer cg_live_xxxxxxxxxxxxxxxx'
+```
+
+```javascript JavaScript
+const address = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+
+const response = await fetch(
+  `https://api.cryptoguard.ai/v1/risk/report/${address}?chain=ethereum`,
+  {
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+  }
+);
+
+const report = await response.json();
+console.log('Verdict:', report.data.summary.verdict);
+console.log('Recommendations:', report.data.recommendations);
+```
+
+```python Python
+import requests
+
+address = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+
+response = requests.get(
+    f'https://api.cryptoguard.ai/v1/risk/report/{address}',
+    headers={'Authorization': f'Bearer {api_key}'},
+    params={'chain': 'ethereum'}
+)
+
+report = response.json()
+print(f"Verdict: {report['data']['summary']['verdict']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Full Risk Report
+{
+  "success": true,
+  "data": {
+    "entity": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "entityType": "contract",
+    "summary": {
+      "riskScore": 15,
+      "riskLevel": "low",
+      "verdict": "safe",
+      "generatedAt": "2024-01-15T14:32:00Z"
+    },
+    "riskBreakdown": {
+      "ownership": {
+        "score": 20,
+        "weight": 25,
+        "factors": [
+          {
+            "name": "Ownership not renounced",
+            "impact": 10,
+            "description": "Owner can modify contract parameters"
+          },
+          {
+            "name": "Multisig owner",
+            "impact": -5,
+            "description": "Owner is a multisig (reduces risk)"
+          }
+        ]
+      },
+      "code": {
+        "score": 5,
+        "weight": 30,
+        "factors": [
+          {
+            "name": "Verified source",
+            "impact": -10,
+            "description": "Source code is verified on Etherscan"
+          },
+          {
+            "name": "Audited",
+            "impact": -15,
+            "description": "Contract audited by multiple firms"
+          }
+        ]
+      },
+      "liquidity": {
+        "score": 5,
+        "weight": 25,
+        "factors": [
+          {
+            "name": "High liquidity",
+            "impact": -10,
+            "description": "Liquidity > $1B"
+          }
+        ]
+      },
+      "associations": {
+        "score": 10,
+        "weight": 20,
+        "factors": [
+          {
+            "name": "Interacts with known exchanges",
+            "impact": -5,
+            "description": "Used by major centralized exchanges"
+          }
+        ]
+      }
+    },
+    "history": [
+      { "date": "2024-01-01", "score": 15 },
+      { "date": "2023-12-01", "score": 15 },
+      { "date": "2023-11-01", "score": 18 },
+      { "date": "2023-10-01", "score": 18 }
+    ],
+    "recommendations": [
+      "This is a well-established stablecoin contract (USDT)",
+      "Owner retains control - be aware of centralization",
+      "Monitor for any ownership changes"
+    ]
+  },
+  "meta": {
+    "requestId": "req_report_usdt",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 1247
+  }
+}
+```
+</ResponseExample>

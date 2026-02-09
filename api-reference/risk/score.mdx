@@ -1,0 +1,175 @@
+---
+title: "Get Risk Score"
+api: "GET https://api.cryptoguard.ai/v1/risk/score/{entity}"
+description: "Retrieve the risk score for any address, URL, or transaction hash"
+---
+
+Quick risk score lookup for any entity. For detailed reports, use the [Risk Report](/api-reference/risk/report) endpoint.
+
+## Authorization
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer cg_live_xxxxxxxx`
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="entity" type="string" required>
+  The entity to score. Can be:
+  - **Wallet address**: `0x742d35Cc6634C0532925a3b844Bc454c459dFE2C`
+  - **Contract address**: `0xdAC17F958D2ee523a2206206994597C13D831ec7`
+  - **URL**: `https://suspicious-site.com`
+  - **Transaction hash**: `0xa1b2c3d4e5f6...`
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="chain" type="string" default="ethereum">
+  Blockchain network (for address entities only).
+  
+  **Options**: `ethereum`, `bsc`, `polygon`
+</ParamField>
+
+<ParamField query="type" type="string">
+  Entity type hint. Auto-detected if not provided.
+  
+  **Options**: `address`, `url`, `transaction`
+</ParamField>
+
+## Response
+
+<ResponseField name="entity" type="string">
+  The entity that was scored
+</ResponseField>
+
+<ResponseField name="entityType" type="string">
+  Detected entity type: `wallet`, `contract`, `url`, `transaction`
+</ResponseField>
+
+<ResponseField name="riskScore" type="integer">
+  Risk score from 0-100
+</ResponseField>
+
+<ResponseField name="riskLevel" type="string">
+  Human-readable risk level: `safe`, `low`, `medium`, `high`, `critical`
+</ResponseField>
+
+<ResponseField name="confidence" type="number">
+  Score confidence (0.0-1.0)
+</ResponseField>
+
+<ResponseField name="lastUpdated" type="string">
+  When the score was last calculated (ISO 8601)
+</ResponseField>
+
+<ResponseField name="factors" type="array">
+  Top contributing factors to the score
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --request GET \
+  --url 'https://api.cryptoguard.ai/v1/risk/score/0x742d35Cc6634C0532925a3b844Bc454c459dFE2C?chain=ethereum' \
+  --header 'Authorization: Bearer cg_live_xxxxxxxxxxxxxxxx'
+```
+
+```javascript JavaScript
+const entity = '0x742d35Cc6634C0532925a3b844Bc454c459dFE2C';
+
+const response = await fetch(
+  `https://api.cryptoguard.ai/v1/risk/score/${entity}?chain=ethereum`,
+  {
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+  }
+);
+
+const data = await response.json();
+console.log(`Risk Score: ${data.data.riskScore}/100`);
+```
+
+```python Python
+import requests
+
+entity = '0x742d35Cc6634C0532925a3b844Bc454c459dFE2C'
+
+response = requests.get(
+    f'https://api.cryptoguard.ai/v1/risk/score/{entity}',
+    headers={'Authorization': f'Bearer {api_key}'},
+    params={'chain': 'ethereum'}
+)
+
+data = response.json()
+print(f"Risk Score: {data['data']['riskScore']}/100")
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Low Risk Address
+{
+  "success": true,
+  "data": {
+    "entity": "0x742d35Cc6634C0532925a3b844Bc454c459dFE2C",
+    "entityType": "wallet",
+    "riskScore": 12,
+    "riskLevel": "low",
+    "confidence": 0.95,
+    "lastUpdated": "2024-01-15T14:32:00Z",
+    "factors": []
+  },
+  "meta": {
+    "requestId": "req_score_low",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 45
+  }
+}
+```
+
+```json 200 - High Risk Contract
+{
+  "success": true,
+  "data": {
+    "entity": "0xDEAD0000000000000000000000000000000000",
+    "entityType": "contract",
+    "riskScore": 89,
+    "riskLevel": "critical",
+    "confidence": 0.92,
+    "lastUpdated": "2024-01-15T14:00:00Z",
+    "factors": [
+      "Honeypot detected",
+      "99% sell tax",
+      "Unverified source code",
+      "Contract deployed 2 days ago"
+    ]
+  },
+  "meta": {
+    "requestId": "req_score_high",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 67
+  }
+}
+```
+
+```json 200 - URL Risk
+{
+  "success": true,
+  "data": {
+    "entity": "https://metamask-claim.xyz",
+    "entityType": "url",
+    "riskScore": 95,
+    "riskLevel": "critical",
+    "confidence": 0.99,
+    "lastUpdated": "2024-01-15T14:30:00Z",
+    "factors": [
+      "Known phishing domain",
+      "Typosquatting detected",
+      "Domain registered 3 days ago"
+    ]
+  },
+  "meta": {
+    "requestId": "req_score_url",
+    "timestamp": "2024-01-15T14:32:00.847Z",
+    "processingTime": 23
+  }
+}
+```
+</ResponseExample>

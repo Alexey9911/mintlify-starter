@@ -1,0 +1,283 @@
+---
+title: "CLI Tool"
+description: "Command-line interface for CryptoGuard API"
+icon: "terminal"
+---
+
+The CryptoGuard CLI provides quick access to security scanning from your terminal.
+
+## Installation
+
+```bash
+npm install -g cryptoguard-cli
+```
+
+or
+
+```bash
+npx cryptoguard-cli <command>
+```
+
+---
+
+## Configuration
+
+Set your API key:
+
+```bash
+cryptoguard config set api-key cg_live_xxxxxxxx
+```
+
+Or use environment variable:
+
+```bash
+export CRYPTOGUARD_API_KEY=cg_live_xxxxxxxx
+```
+
+---
+
+## Commands
+
+### scan
+
+Scan URLs, contracts, wallets, or transactions.
+
+```bash
+# Scan a URL
+cryptoguard scan url https://example.com
+
+# Scan a contract
+cryptoguard scan contract 0xdAC17F958D2ee523a2206206994597C13D831ec7 --chain ethereum
+
+# Scan a wallet
+cryptoguard scan wallet 0x742d35Cc6634C0532925a3b844Bc454c459dFE2C
+
+# Scan with JSON output
+cryptoguard scan url https://example.com --json
+```
+
+#### Options
+
+| Flag | Description |
+|------|-------------|
+| `--chain, -c` | Blockchain network (ethereum, bsc, polygon) |
+| `--json, -j` | Output as JSON |
+| `--verbose, -v` | Show detailed output |
+| `--timeout, -t` | Request timeout in seconds |
+
+---
+
+### risk
+
+Get risk scores and reports.
+
+```bash
+# Quick score
+cryptoguard risk score 0x742d35Cc6634C0532925a3b844Bc454c459dFE2C
+
+# Full report
+cryptoguard risk report 0x742d35Cc6634C0532925a3b844Bc454c459dFE2C
+
+# Export report as PDF
+cryptoguard risk report 0x... --format pdf --output report.pdf
+```
+
+---
+
+### watch
+
+Monitor entities in real-time.
+
+```bash
+# Watch a contract for risk changes
+cryptoguard watch 0xdAC17F958D2ee523a2206206994597C13D831ec7
+
+# Watch multiple addresses
+cryptoguard watch 0x... 0x... 0x...
+
+# Watch with custom threshold
+cryptoguard watch 0x... --threshold 50
+```
+
+---
+
+### batch
+
+Process multiple entities from a file.
+
+```bash
+# Create input file
+cat > addresses.txt << EOF
+0xdAC17F958D2ee523a2206206994597C13D831ec7
+0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+0x6B175474E89094C44Da98b954EedcDC9BC55c6
+EOF
+
+# Batch scan
+cryptoguard batch scan addresses.txt --chain ethereum --output results.json
+
+# Batch risk scores
+cryptoguard batch risk addresses.txt --output scores.csv
+```
+
+---
+
+### config
+
+Manage CLI configuration.
+
+```bash
+# Set API key
+cryptoguard config set api-key cg_live_xxxxxxxx
+
+# Set default chain
+cryptoguard config set default-chain ethereum
+
+# View config
+cryptoguard config list
+
+# Reset config
+cryptoguard config reset
+```
+
+---
+
+## Examples
+
+### Check a Token Before Buying
+
+```bash
+$ cryptoguard scan contract 0xDEAD... --chain bsc
+
+╔═══════════════════════════════════════════════════════════╗
+║                    CONTRACT ANALYSIS                      ║
+╠═══════════════════════════════════════════════════════════╣
+║  Address:     0xDEAD...                                   ║
+║  Chain:       BSC                                         ║
+║  Name:        SuspiciousToken                             ║
+║  Symbol:      SCAM                                        ║
+╠═══════════════════════════════════════════════════════════╣
+║  RISK SCORE:  🔴 92/100 (CRITICAL)                        ║
+╠═══════════════════════════════════════════════════════════╣
+║  ⚠️  HONEYPOT DETECTED                                    ║
+║  ⚠️  Sell tax: 99%                                        ║
+║  ⚠️  Source not verified                                  ║
+║  ⚠️  Contract deployed 2 hours ago                        ║
+╠═══════════════════════════════════════════════════════════╣
+║  RECOMMENDATION: BLOCK - DO NOT INTERACT                  ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
+### Quick URL Check
+
+```bash
+$ cryptoguard scan url https://metamask-claim.xyz
+
+╔═══════════════════════════════════════════════════════════╗
+║                      URL ANALYSIS                         ║
+╠═══════════════════════════════════════════════════════════╣
+║  URL:         https://metamask-claim.xyz                  ║
+║  Final URL:   https://metamask-claim.xyz/connect          ║
+╠═══════════════════════════════════════════════════════════╣
+║  RISK SCORE:  🔴 95/100 (CRITICAL)                        ║
+╠═══════════════════════════════════════════════════════════╣
+║  ⚠️  Known phishing domain                                ║
+║  ⚠️  Typosquatting detected (metamask.io)                 ║
+║  ⚠️  Domain registered 3 days ago                         ║
+╠═══════════════════════════════════════════════════════════╣
+║  RECOMMENDATION: BLOCK - PHISHING SITE                    ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
+---
+
+## Output Formats
+
+### Table (default)
+
+Human-readable table format with colors.
+
+### JSON
+
+```bash
+cryptoguard scan url https://example.com --json
+```
+
+```json
+{
+  "url": "https://example.com",
+  "riskScore": 5,
+  "riskLevel": "safe",
+  "threats": [],
+  "recommendation": "PROCEED"
+}
+```
+
+### CSV
+
+```bash
+cryptoguard batch risk addresses.txt --output results.csv
+```
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Invalid arguments |
+| 3 | Authentication error |
+| 4 | Rate limit exceeded |
+| 10+ | Risk threshold exceeded |
+
+Use exit codes in scripts:
+
+```bash
+cryptoguard scan contract 0x... --chain ethereum
+if [ $? -ge 10 ]; then
+  echo "High risk detected!"
+fi
+```
+
+---
+
+## Shell Integration
+
+### Bash Completion
+
+```bash
+# Add to ~/.bashrc
+source <(cryptoguard completion bash)
+```
+
+### Zsh Completion
+
+```bash
+# Add to ~/.zshrc
+source <(cryptoguard completion zsh)
+```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+- name: Security Check
+  run: |
+    npm install -g cryptoguard-cli
+    cryptoguard scan contract ${{ env.CONTRACT_ADDRESS }} --chain ethereum --json > scan-result.json
+    
+    RISK=$(jq '.riskScore' scan-result.json)
+    if [ "$RISK" -gt 50 ]; then
+      echo "::error::High risk contract detected"
+      exit 1
+    fi
+```
+
+<Note>
+  The CLI caches results locally for 5 minutes to reduce API calls. Use `--no-cache` to force fresh scans.
+</Note>

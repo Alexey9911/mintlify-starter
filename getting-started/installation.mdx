@@ -1,0 +1,170 @@
+---
+title: "Installation Guide"
+description: "Detailed installation instructions for all supported browsers"
+icon: "download"
+---
+
+## Supported Browsers
+
+CryptoGuard is available on all Chromium-based browsers:
+
+| Browser | Version | Status |
+|---------|---------|--------|
+| Google Chrome | 88+ | ✅ Fully Supported |
+| Brave | 1.20+ | ✅ Fully Supported |
+| Microsoft Edge | 88+ | ✅ Fully Supported |
+| Opera | 74+ | ✅ Fully Supported |
+| Firefox | - | 🔜 Coming Soon |
+
+---
+
+## Chrome Installation
+
+<Steps>
+  <Step title="Open Chrome Web Store">
+    Navigate to the CryptoGuard extension page:
+    
+    ```
+    https://chrome.google.com/webstore/detail/cryptoguard
+    ```
+  </Step>
+  
+  <Step title="Add to Chrome">
+    Click the **Add to Chrome** button in the top right corner.
+  </Step>
+  
+  <Step title="Confirm Permissions">
+    Review the requested permissions and click **Add extension**.
+    
+    CryptoGuard requires:
+    - `Read and change your data on all websites` — Required for URL scanning
+    - `Display notifications` — For security alerts
+  </Step>
+  
+  <Step title="Pin Extension">
+    Click the puzzle icon (🧩) in the toolbar, then click the pin icon next to CryptoGuard.
+  </Step>
+</Steps>
+
+---
+
+## Brave Installation
+
+Brave users can install directly from Chrome Web Store:
+
+```bash
+# Brave supports Chrome extensions natively
+# Navigate to:
+chrome://extensions/
+
+# Enable "Allow extensions from other stores" if prompted
+```
+
+<Note>
+  Brave Shields and CryptoGuard work together. CryptoGuard adds Web3-specific protection that Brave Shields does not cover.
+</Note>
+
+---
+
+## Edge Installation
+
+<Steps>
+  <Step title="Enable Chrome Extensions">
+    In Edge, navigate to:
+    
+    ```
+    edge://extensions/
+    ```
+    
+    Enable **Allow extensions from other stores** in the left sidebar.
+  </Step>
+  
+  <Step title="Install from Chrome Web Store">
+    Visit the Chrome Web Store link and click **Add to Chrome**.
+  </Step>
+</Steps>
+
+---
+
+## Opera Installation
+
+Opera supports Chrome extensions through the **Install Chrome Extensions** add-on:
+
+<Steps>
+  <Step title="Install Chrome Extension Support">
+    Visit the Opera Add-ons page and install **Install Chrome Extensions**.
+  </Step>
+  
+  <Step title="Add CryptoGuard">
+    Navigate to Chrome Web Store and install CryptoGuard normally.
+  </Step>
+</Steps>
+
+---
+
+## Permissions Explained
+
+CryptoGuard requests minimal permissions for maximum security:
+
+| Permission | Purpose | Data Accessed |
+|------------|---------|---------------|
+| `activeTab` | Scan current page URL | URL only, no content |
+| `storage` | Save user preferences | Local config only |
+| `notifications` | Security alerts | None |
+| `webRequest` | Intercept suspicious requests | URL patterns only |
+
+<Warning>
+  CryptoGuard never accesses your private keys, seed phrases, or wallet contents. We only analyze public blockchain data and URL patterns.
+</Warning>
+
+---
+
+## Verification
+
+After installation, verify CryptoGuard is working:
+
+1. Click the CryptoGuard icon in your toolbar
+2. You should see the dashboard with current page analysis
+3. Navigate to `https://app.uniswap.org` — should show green (safe)
+4. The extension icon should display a checkmark
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Icon not visible | Click puzzle icon and pin CryptoGuard |
+| Extension disabled | Go to `chrome://extensions/` and enable |
+| Not scanning pages | Refresh the page or reinstall extension |
+| Conflicts with other extensions | Disable other security extensions temporarily |
+
+---
+
+## Updating
+
+CryptoGuard updates automatically through your browser's extension system. To manually check for updates:
+
+```bash
+# Chrome
+chrome://extensions/
+# Click "Update" or enable Developer Mode and click "Update"
+
+# Edge
+edge://extensions/
+# Same process
+```
+
+<Note>
+  Major updates may require re-granting permissions. You'll see a notification when this happens.
+</Note>
+
+---
+
+## Uninstallation
+
+To remove CryptoGuard:
+
+1. Right-click the CryptoGuard icon
+2. Select **Remove from Chrome** (or your browser)
+3. Confirm removal
+
+All local preferences are deleted. No data is retained on our servers.

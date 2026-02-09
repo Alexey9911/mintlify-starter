@@ -1,0 +1,310 @@
+---
+title: "Data Providers"
+description: "Security partners and data source integrations"
+icon: "database"
+---
+
+CryptoGuard aggregates threat intelligence from multiple industry-leading security providers to maximize detection coverage.
+
+## Integration Partners
+
+<CardGroup cols={2}>
+  <Card title="CUBE3.AI" icon="cube">
+    Real-time transaction fraud detection and smart contract security
+  </Card>
+  <Card title="GoPlus Security" icon="shield-check">
+    Token security API and honeypot detection for 20+ chains
+  </Card>
+  <Card title="EtherScan" icon="ethereum">
+    Contract verification and Ethereum transaction indexing
+  </Card>
+  <Card title="BSCScan" icon="link">
+    BNB Smart Chain contract and transaction data
+  </Card>
+  <Card title="Shieldeum" icon="shield">
+    Decentralized threat intelligence network
+  </Card>
+  <Card title="ChainGPT" icon="brain">
+    AI-powered analysis and natural language processing
+  </Card>
+</CardGroup>
+
+---
+
+## CUBE3.AI Integration
+
+CUBE3.AI provides real-time transaction risk assessment:
+
+```typescript
+interface CUBE3Response {
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskScore: number;
+  threats: {
+    type: string;
+    severity: string;
+    description: string;
+  }[];
+  simulation?: {
+    success: boolean;
+    gasUsed: string;
+    balanceChanges: BalanceChange[];
+    revertReason?: string;
+  };
+}
+```
+
+### API Usage
+
+```typescript
+const cube3Result = await cube3.assessTransaction({
+  chainId: 1,
+  from: '0x...',
+  to: '0x...',
+  data: '0x...',
+  value: '1000000000000000000'
+});
+
+if (cube3Result.riskLevel === 'critical') {
+  blockTransaction();
+}
+```
+
+### Coverage
+
+| Chain | Status | Features |
+|-------|--------|----------|
+| Ethereum | ✅ Full | Transaction simulation, fraud detection |
+| BNB Chain | ✅ Full | Contract analysis, honeypot detection |
+| Polygon | ✅ Full | Real-time monitoring |
+| Arbitrum | ✅ Full | L2 transaction analysis |
+| Optimism | ✅ Full | L2 transaction analysis |
+| Avalanche | 🔜 Soon | Coming Q2 2024 |
+
+---
+
+## GoPlus Security Integration
+
+GoPlus provides comprehensive token security analysis:
+
+```typescript
+interface GoPlusTokenSecurity {
+  // Honeypot detection
+  is_honeypot: boolean;
+  honeypot_with_same_creator: boolean;
+  
+  // Tax analysis
+  buy_tax: string;
+  sell_tax: string;
+  
+  // Ownership risks
+  is_mintable: boolean;
+  can_take_back_ownership: boolean;
+  owner_change_balance: boolean;
+  hidden_owner: boolean;
+  
+  // Trading restrictions
+  is_blacklisted: boolean;
+  is_whitelisted: boolean;
+  is_anti_whale: boolean;
+  trading_cooldown: boolean;
+  
+  // Contract verification
+  is_open_source: boolean;
+  is_proxy: boolean;
+  
+  // Holder analysis
+  holder_count: string;
+  total_supply: string;
+  creator_percent: string;
+  lp_holder_count: string;
+}
+```
+
+### API Usage
+
+```typescript
+const goplusResult = await goplus.getTokenSecurity({
+  chainId: '1',
+  contractAddress: '0x...'
+});
+
+// Calculate risk based on factors
+let risk = 0;
+if (goplusResult.is_honeypot) risk += 50;
+if (parseFloat(goplusResult.sell_tax) > 10) risk += 30;
+if (goplusResult.hidden_owner) risk += 20;
+```
+
+### Supported Chains
+
+| Chain ID | Chain Name | Token Security | Address Security |
+|----------|------------|----------------|------------------|
+| 1 | Ethereum | ✅ | ✅ |
+| 56 | BNB Chain | ✅ | ✅ |
+| 137 | Polygon | ✅ | ✅ |
+| 42161 | Arbitrum | ✅ | ✅ |
+| 10 | Optimism | ✅ | ✅ |
+| 43114 | Avalanche | ✅ | ✅ |
+| 250 | Fantom | ✅ | ❌ |
+| 25 | Cronos | ✅ | ❌ |
+
+---
+
+## Block Explorer Integration
+
+### EtherScan API
+
+```typescript
+interface EtherScanContract {
+  ContractName: string;
+  CompilerVersion: string;
+  SourceCode: string;
+  ABI: string;
+  ConstructorArguments: string;
+  EVMVersion: string;
+  Library: string;
+  LicenseType: string;
+  Proxy: string;
+  Implementation: string;
+}
+
+// Fetch verified contract source
+const contract = await etherscan.getSourceCode({
+  address: '0x...',
+  apikey: process.env.ETHERSCAN_API_KEY
+});
+
+if (contract.SourceCode) {
+  // Contract is verified - lower risk
+  riskModifier -= 10;
+}
+```
+
+### BSCScan API
+
+```typescript
+// Same interface as EtherScan
+const bscContract = await bscscan.getSourceCode({
+  address: '0x...',
+  apikey: process.env.BSCSCAN_API_KEY
+});
+```
+
+### Transaction Indexing
+
+```typescript
+// Get transaction history for risk analysis
+const txHistory = await etherscan.getTransactionList({
+  address: '0x...',
+  startblock: 0,
+  endblock: 99999999,
+  page: 1,
+  offset: 100,
+  sort: 'desc'
+});
+
+// Analyze patterns
+const patterns = analyzeTransactionPatterns(txHistory);
+```
+
+---
+
+## Shieldeum Integration
+
+Shieldeum provides decentralized threat intelligence:
+
+```typescript
+interface ShieldeumThreatFeed {
+  // Known malicious addresses
+  blacklist: {
+    address: string;
+    chain: string;
+    category: 'phishing' | 'scam' | 'exploit' | 'mixer';
+    reportedAt: string;
+    confidence: number;
+  }[];
+  
+  // Known safe addresses
+  whitelist: {
+    address: string;
+    chain: string;
+    category: 'exchange' | 'protocol' | 'dao';
+    verifiedAt: string;
+  }[];
+  
+  // Real-time alerts
+  alerts: {
+    type: 'new_exploit' | 'rug_pull' | 'phishing_campaign';
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    details: string;
+    timestamp: string;
+  }[];
+}
+```
+
+### Real-Time Feed
+
+```typescript
+// Subscribe to threat feed
+const shieldeum = new ShieldeumClient({
+  apiKey: process.env.SHIELDEUM_API_KEY
+});
+
+shieldeum.subscribe('threats', (threat) => {
+  // Update local blacklist
+  localBlacklist.add(threat.address);
+  
+  // Alert affected users
+  if (threat.severity === 'critical') {
+    notifyUsers(threat);
+  }
+});
+```
+
+---
+
+## Data Aggregation
+
+### Priority Hierarchy
+
+When multiple sources disagree, CryptoGuard uses weighted aggregation:
+
+| Source | Weight | Specialty |
+|--------|--------|-----------|
+| CryptoGuard Internal | 35% | Web3-specific ML models |
+| CUBE3.AI | 25% | Transaction simulation |
+| GoPlus | 20% | Token security |
+| EtherScan/BSCScan | 15% | Contract verification |
+| Shieldeum | 5% | Community reports |
+
+### Conflict Resolution
+
+```typescript
+function aggregateRiskScores(sources: RiskSource[]): number {
+  const weightedSum = sources.reduce((sum, source) => {
+    return sum + (source.score * source.weight * source.confidence);
+  }, 0);
+  
+  const totalWeight = sources.reduce((sum, source) => {
+    return sum + (source.weight * source.confidence);
+  }, 0);
+  
+  return weightedSum / totalWeight;
+}
+```
+
+---
+
+## Update Frequency
+
+| Data Type | Update Interval | Source |
+|-----------|-----------------|--------|
+| Phishing domains | 15 seconds | CryptoGuard + Shieldeum |
+| Token security | 1 minute | GoPlus |
+| Contract verification | 5 minutes | EtherScan/BSCScan |
+| Transaction patterns | Real-time | CUBE3.AI |
+| ML model predictions | Real-time | CryptoGuard |
+
+<Note>
+  Critical security alerts (confirmed exploits, active rug pulls) are propagated within 30 seconds across all systems.
+</Note>

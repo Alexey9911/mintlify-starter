@@ -1,0 +1,202 @@
+---
+title: "Authentication"
+description: "API key management and authentication methods"
+icon: "key"
+---
+
+All CryptoGuard API requests require authentication using API keys.
+
+## API Key Format
+
+CryptoGuard API keys follow this format:
+
+```
+cg_<environment>_<32_character_string>
+
+Examples:
+cg_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+cg_test_x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4
+```
+
+| Prefix | Environment | Use Case |
+|--------|-------------|----------|
+| `cg_live_` | Production | Real security data |
+| `cg_test_` | Sandbox | Testing and development |
+
+---
+
+## Obtaining API Keys
+
+<Steps>
+  <Step title="Create Account">
+    Sign up at [dashboard.cryptoguard.ai](https://dashboard.cryptoguard.ai)
+  </Step>
+  
+  <Step title="Navigate to API Keys">
+    Go to **Settings** → **API Keys** → **Create New Key**
+  </Step>
+  
+  <Step title="Configure Permissions">
+    Select the required scopes for your use case
+  </Step>
+  
+  <Step title="Store Securely">
+    Copy your API key immediately. It will only be shown once.
+  </Step>
+</Steps>
+
+<Warning>
+  API keys are shown only once upon creation. Store them securely. If lost, revoke and create a new key.
+</Warning>
+
+---
+
+## Using API Keys
+
+### HTTP Header (Recommended)
+
+Include the API key in the `Authorization` header:
+
+```bash
+curl --request GET \
+  --url https://api.cryptoguard.ai/v1/risk/score/0x742d35Cc6634C0532925a3b844Bc454c459dFE2C \
+  --header 'Authorization: Bearer cg_live_xxxxxxxxxxxxxxxx'
+```
+
+### Query Parameter (Not Recommended)
+
+For testing only. Not secure for production:
+
+```bash
+curl --request GET \
+  --url 'https://api.cryptoguard.ai/v1/risk/score/0x...?api_key=cg_live_xxxxxxxx'
+```
+
+---
+
+## Scopes
+
+API keys can be scoped to specific permissions:
+
+| Scope | Description | Endpoints |
+|-------|-------------|-----------|
+| `scan:read` | URL and contract scanning | `/scan/*` |
+| `risk:read` | Risk score retrieval | `/risk/*` |
+| `wallet:read` | Wallet analysis | `/scan/wallet`, `/wallet/*` |
+| `webhooks:write` | Manage webhooks | `/webhooks/*` |
+| `admin` | Full access | All endpoints |
+
+### Example: Read-Only Key
+
+```typescript
+// Key with limited scopes
+const key = {
+  id: 'key_abc123',
+  prefix: 'cg_live_',
+  scopes: ['scan:read', 'risk:read'],
+  createdAt: '2024-01-15T10:00:00Z'
+};
+
+// This request will succeed
+await fetch('/v1/scan/url', { headers: { Authorization: `Bearer ${apiKey}` } });
+
+// This request will fail (403 Forbidden)
+await fetch('/v1/webhooks', { headers: { Authorization: `Bearer ${apiKey}` } });
+```
+
+---
+
+## Rate Limits by Tier
+
+| Tier | Price | Rate Limit | Daily Limit |
+|------|-------|------------|-------------|
+| Free | $0/mo | 60 req/min | 1,000 |
+| Pro | $49/mo | 300 req/min | 50,000 |
+| Enterprise | Custom | 1,000 req/min | Unlimited |
+
+Rate limits are applied per API key. Multiple keys do not combine limits.
+
+---
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Never Expose Keys" icon="eye-slash">
+    Never commit API keys to version control or expose in client-side code
+  </Card>
+  <Card title="Use Environment Variables" icon="terminal">
+    Store keys in environment variables or secrets managers
+  </Card>
+  <Card title="Rotate Regularly" icon="rotate">
+    Rotate keys every 90 days as a security practice
+  </Card>
+  <Card title="Minimum Scopes" icon="shield">
+    Grant only the permissions your application needs
+  </Card>
+</CardGroup>
+
+### Environment Variables
+
+```bash
+# .env file (never commit this)
+CRYPTOGUARD_API_KEY=cg_live_xxxxxxxxxxxxxxxx
+```
+
+```typescript
+// Usage in code
+const apiKey = process.env.CRYPTOGUARD_API_KEY;
+```
+
+---
+
+## Key Management
+
+### List Keys
+
+```bash
+GET /v1/auth/keys
+```
+
+```json
+{
+  "keys": [
+    {
+      "id": "key_abc123",
+      "name": "Production Key",
+      "prefix": "cg_live_a1b2",
+      "scopes": ["scan:read", "risk:read"],
+      "lastUsed": "2024-01-15T14:32:00Z",
+      "createdAt": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### Revoke Key
+
+```bash
+DELETE /v1/auth/keys/{keyId}
+```
+
+Revoked keys immediately stop working. This cannot be undone.
+
+---
+
+## Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `INVALID_API_KEY` | 401 | Key is malformed or doesn't exist |
+| `EXPIRED_API_KEY` | 401 | Key has been revoked |
+| `INSUFFICIENT_SCOPE` | 403 | Key lacks required permissions |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "The provided API key is invalid or expired"
+  }
+}
+```

@@ -1,0 +1,306 @@
+---
+title: "JavaScript SDK"
+description: "Official JavaScript/TypeScript SDK for CryptoGuard API"
+icon: "js"
+---
+
+The official JavaScript SDK provides type-safe access to the CryptoGuard API with built-in retry logic and error handling.
+
+## Installation
+
+```bash
+npm install @cryptoguard/sdk
+```
+
+or
+
+```bash
+yarn add @cryptoguard/sdk
+```
+
+---
+
+## Quick Start
+
+```typescript
+import { CryptoGuard } from '@cryptoguard/sdk';
+
+const guard = new CryptoGuard({
+  apiKey: process.env.CRYPTOGUARD_API_KEY
+});
+
+// Scan a URL
+const urlResult = await guard.scan.url('https://example.com');
+console.log('Risk Score:', urlResult.riskScore);
+
+// Analyze a contract
+const contractResult = await guard.scan.contract({
+  address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+  chain: 'ethereum'
+});
+console.log('Is Honeypot:', contractResult.isHoneypot);
+```
+
+---
+
+## Configuration
+
+```typescript
+interface CryptoGuardConfig {
+  apiKey: string;                 // Required
+  baseUrl?: string;               // Default: https://api.cryptoguard.ai
+  timeout?: number;               // Request timeout in ms (default: 30000)
+  retries?: number;               // Retry attempts (default: 3)
+  retryDelay?: number;            // Base retry delay in ms (default: 1000)
+}
+
+const guard = new CryptoGuard({
+  apiKey: 'cg_live_xxxxxxxx',
+  timeout: 10000,
+  retries: 5
+});
+```
+
+---
+
+## API Reference
+
+### Scanning
+
+#### scan.url(url, options?)
+
+```typescript
+const result = await guard.scan.url('https://suspicious-site.com', {
+  chain: 'ethereum',
+  includeContent: true,
+  includeWhois: true
+});
+
+// Returns
+interface UrlScanResult {
+  url: string;
+  riskScore: number;
+  riskLevel: 'safe' | 'low' | 'medium' | 'high' | 'critical';
+  threats: string[];
+  details: {
+    domainAge: number;
+    sslStatus: string;
+    redirectCount: number;
+    finalUrl: string;
+  };
+  recommendation: 'PROCEED' | 'CAUTION' | 'AVOID' | 'BLOCK';
+}
+```
+
+#### scan.contract(params)
+
+```typescript
+const result = await guard.scan.contract({
+  address: '0x...',
+  chain: 'ethereum',
+  options: {
+    includeAbi: true,
+    simulateTrade: true
+  }
+});
+
+// Returns
+interface ContractScanResult {
+  address: string;
+  chain: string;
+  riskScore: number;
+  riskLevel: string;
+  isHoneypot: boolean;
+  contractDetails: {
+    name: string;
+    symbol: string;
+    verified: boolean;
+    createdAt: string;
+  };
+  tokenSecurity: {
+    buyTax: number;
+    sellTax: number;
+    isMintable: boolean;
+    canBlacklist: boolean;
+    ownershipRenounced: boolean;
+  };
+  threats: string[];
+}
+```
+
+#### scan.wallet(address, options?)
+
+```typescript
+const result = await guard.scan.wallet('0x...', {
+  chain: 'ethereum',
+  includeApprovals: true
+});
+
+// Returns
+interface WalletScanResult {
+  address: string;
+  riskScore: number;
+  riskLevel: string;
+  labels: string[];
+  profile: {
+    age: number;
+    transactionCount: number;
+  };
+  associations: {
+    knownEntities: string[];
+    flaggedAddresses: string[];
+  };
+}
+```
+
+#### scan.transaction(tx)
+
+```typescript
+const result = await guard.scan.transaction({
+  from: '0x...',
+  to: '0x...',
+  value: '500000000000000000',
+  data: '0x...',
+  chain: 'ethereum'
+});
+
+// Returns
+interface TransactionScanResult {
+  riskScore: number;
+  decoded: {
+    functionName: string;
+    parameters: object[];
+  };
+  explanation: {
+    summary: string;
+    details: string;
+    warnings: string[];
+  };
+  simulation: {
+    success: boolean;
+    gasUsed: string;
+    balanceChanges: object[];
+  };
+  recommendation: string;
+}
+```
+
+---
+
+### Risk Analysis
+
+#### risk.getScore(entity, options?)
+
+```typescript
+const score = await guard.risk.getScore('0x...', { chain: 'ethereum' });
+console.log(score.riskScore); // 0-100
+```
+
+#### risk.getReport(entity, options?)
+
+```typescript
+const report = await guard.risk.getReport('0x...', { chain: 'ethereum' });
+console.log(report.summary);
+console.log(report.riskBreakdown);
+console.log(report.recommendations);
+```
+
+---
+
+### Webhooks
+
+```typescript
+// Create webhook
+const webhook = await guard.webhooks.create({
+  url: 'https://your-app.com/webhooks',
+  events: ['entity.risk_changed', 'entity.threat_detected'],
+  entities: ['0x...']
+});
+
+// List webhooks
+const webhooks = await guard.webhooks.list();
+
+// Delete webhook
+await guard.webhooks.delete(webhook.id);
+```
+
+---
+
+## Error Handling
+
+```typescript
+import { CryptoGuard, APIError, RateLimitError, ValidationError } from '@cryptoguard/sdk';
+
+try {
+  const result = await guard.scan.url('https://example.com');
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log('Rate limited. Retry after:', error.retryAfter);
+  } else if (error instanceof ValidationError) {
+    console.log('Validation failed:', error.field, error.message);
+  } else if (error instanceof APIError) {
+    console.log('API error:', error.code, error.message);
+  } else {
+    console.log('Unexpected error:', error);
+  }
+}
+```
+
+---
+
+## TypeScript Support
+
+Full TypeScript support with exported types:
+
+```typescript
+import type {
+  UrlScanResult,
+  ContractScanResult,
+  WalletScanResult,
+  TransactionScanResult,
+  RiskScore,
+  RiskReport,
+  Webhook
+} from '@cryptoguard/sdk';
+```
+
+---
+
+## React Integration
+
+```tsx
+import { useCryptoGuard } from '@cryptoguard/sdk/react';
+
+function SecurityBadge({ url }: { url: string }) {
+  const { data, loading, error } = useCryptoGuard().scan.url(url);
+  
+  if (loading) return <span>Scanning...</span>;
+  if (error) return <span>Error: {error.message}</span>;
+  
+  return (
+    <span className={`badge badge-${data.riskLevel}`}>
+      Risk: {data.riskScore}/100
+    </span>
+  );
+}
+```
+
+---
+
+## Browser Usage
+
+For browser environments, use the browser build:
+
+```html
+<script src="https://cdn.cryptoguard.ai/sdk/v1/cryptoguard.min.js"></script>
+<script>
+  const guard = new CryptoGuard({ apiKey: 'cg_live_...' });
+  guard.scan.url(window.location.href).then(result => {
+    console.log('Page risk:', result.riskScore);
+  });
+</script>
+```
+
+<Warning>
+  Never expose your API key in client-side code in production. Use a backend proxy.
+</Warning>

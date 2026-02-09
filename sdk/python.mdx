@@ -1,0 +1,289 @@
+---
+title: "Python SDK"
+description: "Official Python SDK for CryptoGuard API"
+icon: "python"
+---
+
+The official Python SDK provides synchronous and async access to the CryptoGuard API.
+
+## Installation
+
+```bash
+pip install cryptoguard
+```
+
+**Requirements:** Python 3.8+
+
+---
+
+## Quick Start
+
+```python
+from cryptoguard import CryptoGuard
+
+guard = CryptoGuard(api_key="cg_live_xxxxxxxx")
+
+# Scan a URL
+result = guard.scan.url("https://example.com")
+print(f"Risk Score: {result.risk_score}")
+
+# Analyze a contract
+contract = guard.scan.contract(
+    address="0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    chain="ethereum"
+)
+print(f"Is Honeypot: {contract.is_honeypot}")
+```
+
+---
+
+## Async Support
+
+```python
+import asyncio
+from cryptoguard import AsyncCryptoGuard
+
+async def main():
+    guard = AsyncCryptoGuard(api_key="cg_live_xxxxxxxx")
+    
+    # Concurrent scanning
+    results = await asyncio.gather(
+        guard.scan.url("https://example1.com"),
+        guard.scan.url("https://example2.com"),
+        guard.scan.contract(address="0x...", chain="ethereum")
+    )
+    
+    for result in results:
+        print(result.risk_score)
+
+asyncio.run(main())
+```
+
+---
+
+## Configuration
+
+```python
+from cryptoguard import CryptoGuard
+
+guard = CryptoGuard(
+    api_key="cg_live_xxxxxxxx",
+    base_url="https://api.cryptoguard.ai",  # Optional
+    timeout=30,                              # Seconds
+    retries=3,                               # Retry attempts
+)
+```
+
+### Environment Variables
+
+```bash
+export CRYPTOGUARD_API_KEY=cg_live_xxxxxxxx
+```
+
+```python
+# Auto-loads from environment
+guard = CryptoGuard()
+```
+
+---
+
+## API Reference
+
+### Scanning
+
+#### scan.url(url, **options)
+
+```python
+result = guard.scan.url(
+    "https://suspicious-site.com",
+    chain="ethereum",
+    include_content=True,
+    include_whois=True
+)
+
+print(result.url)              # str
+print(result.risk_score)       # int (0-100)
+print(result.risk_level)       # str
+print(result.threats)          # List[str]
+print(result.recommendation)   # str
+```
+
+#### scan.contract(address, chain, **options)
+
+```python
+result = guard.scan.contract(
+    address="0x...",
+    chain="ethereum",
+    include_abi=True,
+    simulate_trade=True
+)
+
+print(result.is_honeypot)           # bool
+print(result.token_security.buy_tax)  # float
+print(result.token_security.sell_tax) # float
+print(result.contract_details.name)   # str
+```
+
+#### scan.wallet(address, **options)
+
+```python
+result = guard.scan.wallet(
+    "0x...",
+    chain="ethereum",
+    include_approvals=True
+)
+
+print(result.labels)               # List[str]
+print(result.profile.age)          # int (days)
+print(result.associations.known_entities)  # List[str]
+```
+
+#### scan.transaction(tx)
+
+```python
+result = guard.scan.transaction(
+    from_address="0x...",
+    to_address="0x...",
+    value="500000000000000000",
+    data="0x...",
+    chain="ethereum"
+)
+
+print(result.explanation.summary)     # str
+print(result.simulation.success)      # bool
+print(result.simulation.balance_changes)  # List[dict]
+```
+
+---
+
+### Risk Analysis
+
+```python
+# Quick score
+score = guard.risk.get_score("0x...", chain="ethereum")
+print(score.risk_score)
+
+# Detailed report
+report = guard.risk.get_report("0x...", chain="ethereum")
+print(report.summary.verdict)
+print(report.risk_breakdown)
+print(report.recommendations)
+```
+
+---
+
+## Error Handling
+
+```python
+from cryptoguard import (
+    CryptoGuard,
+    APIError,
+    RateLimitError,
+    ValidationError,
+    AuthenticationError
+)
+
+guard = CryptoGuard(api_key="cg_live_...")
+
+try:
+    result = guard.scan.url("https://example.com")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after} seconds")
+except ValidationError as e:
+    print(f"Invalid input: {e.field} - {e.message}")
+except AuthenticationError:
+    print("Invalid API key")
+except APIError as e:
+    print(f"API error: {e.code} - {e.message}")
+```
+
+---
+
+## Batch Operations
+
+```python
+# Batch URL scanning
+urls = [
+    "https://example1.com",
+    "https://example2.com",
+    "https://example3.com"
+]
+
+results = guard.scan.urls(urls)
+for url, result in zip(urls, results):
+    print(f"{url}: {result.risk_score}")
+```
+
+---
+
+## Data Classes
+
+All responses are typed data classes:
+
+```python
+from cryptoguard.types import (
+    UrlScanResult,
+    ContractScanResult,
+    WalletScanResult,
+    TransactionScanResult,
+    RiskScore,
+    RiskReport
+)
+
+# IDE autocomplete and type checking works
+result: UrlScanResult = guard.scan.url("...")
+```
+
+---
+
+## Pandas Integration
+
+```python
+import pandas as pd
+
+# Scan multiple contracts and create DataFrame
+addresses = ["0x...", "0x...", "0x..."]
+results = [guard.scan.contract(addr, "ethereum") for addr in addresses]
+
+df = pd.DataFrame([
+    {
+        "address": r.address,
+        "name": r.contract_details.name,
+        "risk_score": r.risk_score,
+        "is_honeypot": r.is_honeypot,
+        "buy_tax": r.token_security.buy_tax,
+        "sell_tax": r.token_security.sell_tax
+    }
+    for r in results
+])
+
+print(df)
+```
+
+---
+
+## Logging
+
+```python
+import logging
+
+# Enable debug logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("cryptoguard")
+logger.setLevel(logging.DEBUG)
+
+guard = CryptoGuard(api_key="...")
+```
+
+---
+
+## Context Manager
+
+```python
+from cryptoguard import CryptoGuard
+
+with CryptoGuard(api_key="...") as guard:
+    result = guard.scan.url("https://example.com")
+    print(result.risk_score)
+# Connection cleaned up automatically
+```
